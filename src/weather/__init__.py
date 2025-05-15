@@ -3,8 +3,8 @@ import datetime
 import json
 
 # key and url
-service_key = ""
-sevice_key_de = ""
+with open(".key/.sevicekey_decode",'r') as f:
+    service_key = f.read()
 url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"
 
 # user data
