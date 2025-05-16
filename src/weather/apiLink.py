@@ -73,10 +73,24 @@ def get_weather_auto( day : int = 0 ):
     pos = latlon_to_grid(latlon)
     
     date_int = int((datetime.datetime.now() + datetime.timedelta(days=day)).strftime("%Y%m%d%H%M"))
+
+    # It works!
+    # may be... 
+    # It does not work
+    #   when the years change every year.
+    # I know it is inaccurate, but
+    #   I AM FxxKING TIRED
+    # someone will be fix it :)
+    corrent_time = (date_int%10000)/100 # get hour and min
     
-    corrent_time = (date_int%10000)/100
+    # It makes 2,5,8,11,14,17,20,23
     corrent_time = int(corrent_time - ((corrent_time-2)%3))%24
+    
+    # It makes 02,05,08,11,14,17,20,23
     corrent_time = f'{corrent_time:02d}00'
+    
+    # Think about it on your own
+    # I don't want to comment >:(
     corrent_date = date_int/10000
 
     return get_weather_manual( pos, corrent_date, corrent_time )
