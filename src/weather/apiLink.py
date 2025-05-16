@@ -3,8 +3,6 @@ import datetime
 import json
 from get_data import *
 from typing import Tuple
-import os
-
 
 def get_weather_manual( pos : Tuple[int,int], date : int, time : int 
                        , number_of_rows : int = 10, page_number : int = 1 
@@ -64,6 +62,13 @@ def get_weather_manual( pos : Tuple[int,int], date : int, time : int
         return result
 
 def get_weather_auto( day : int = 0 ):
+    '''
+    Get weather easier
+
+    Param:
+        day : Get the weather for this number of days
+            in the past 
+    '''
     latlon = get_location()
     pos = latlon_to_grid(latlon)
     
@@ -73,9 +78,7 @@ def get_weather_auto( day : int = 0 ):
     corrent_time = int(corrent_time - ((corrent_time-2)%3))%24
     corrent_time = f'{corrent_time:02d}00'
     corrent_date = date_int/10000
-    data_type = "JSON"
 
-    page_no = 1
     return get_weather_manual( pos, corrent_date, corrent_time )
 
 def response_to_json(response):
