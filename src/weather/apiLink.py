@@ -55,6 +55,7 @@ def get_weather_manual( pos : Tuple[int,int], date : int, time : int
         'nx' : pos[0],
         'ny' : pos[1]
     }
+    print(params)
     result = requests.get(url,params)
     if result.ok:
         return result
@@ -66,11 +67,8 @@ def get_weather_auto( day : int = 0 ):
     latlon = get_location()
     pos = latlon_to_grid(latlon)
     
-    num_of_rows = 10
+    date_int = int((datetime.datetime.now() + datetime.timedelta(days=day)).strftime("%Y%m%d%H%M"))
     
-    date_int = int(datetime.datetime.now().strftime("%Y%m%d%H%M"))
-    
-    print(f'time : {date_int}')
     corrent_time = (date_int%10000)/100
     corrent_time = int(corrent_time - ((corrent_time-2)%3))%24
     corrent_time = f'{corrent_time:02d}00'
