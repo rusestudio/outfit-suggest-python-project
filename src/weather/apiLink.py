@@ -32,15 +32,13 @@ def get_weather_manual( pos : Tuple[int,int], date : int, time : int
         data_type : XML or JSON
 
         day : Get the weather for this number of days
-            in the past
-            
+            in the past   
     """
     try:
-        with open(".key/.servicekey_decode",r):
-            service_key = "S1BaX+xBN5BHD/KvjHaEAjAUw0cifZi2CdoDIeShd6bQ+EWcanogJq5s4v5t32PLhSdymB6jglQwMW9+8O1QFw=="
+        with open("src\weather\.key\.servicekey_decode",'r') as f:
+            service_key = f.read()
     except Exception as e:
         print(e)
-        return None
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
  
     '''
@@ -63,7 +61,6 @@ def get_weather_manual( pos : Tuple[int,int], date : int, time : int
     else:
         print(f'Fatal! : fail requests (status code : {result.status_code})')
         return result
-    return 
 
 def get_weather_auto( day : int = 0 ):
     latlon = get_location()
@@ -73,6 +70,7 @@ def get_weather_auto( day : int = 0 ):
     
     date_int = int(datetime.datetime.now().strftime("%Y%m%d%H%M"))
     
+    print(f'time : {date_int}')
     corrent_time = (date_int%10000)/100
     corrent_time = int(corrent_time - ((corrent_time-2)%3))%24
     corrent_time = f'{corrent_time:02d}00'
