@@ -32,4 +32,14 @@ def get_weather( day : int, time : int, pos : List[int,int]) -> List:
         'nx' : pos[0],
         'ny' : pos[1]
     }
-    request = requests.get(url,params)
+    return requests.get(url,params)
+
+def get_posision() -> List[float,float]:
+    with open(".key/.google_key",'r') as f:
+        service_key = f.read()
+    url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={service_key}'
+    
+    response = requests.post(url)['location']
+    lat = round(location['lat'], 2)
+    lng = round(location['lng'], 2)
+    return [lat,lng]
