@@ -12,7 +12,7 @@ XO = 43          # Reference X cordinate
 YO = 136         # Reference Y cordinate
 
 # This function should get location infomation
-
+# TODO
 def get_location() -> Tuple[float,float]:
     return [37.5665,126.9780]
 
