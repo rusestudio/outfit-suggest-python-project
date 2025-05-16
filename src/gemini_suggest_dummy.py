@@ -83,29 +83,38 @@ print(result)
 
 #def return image prompt only
 def image_prompt(result):
+     #get only image prompt
      imageprompts = re.findall(r'\*\*Image Prompt:\*\*\s*"([^"]+)"', result)
     
-     return imageprompts
+    #fill  prompt
+     throwback = "fashion outfit suitable for current weather and location"
+     while len(imageprompts) < 3:
+        imageprompts.append(throwback)
+    
+     return imageprompts[:3]
 
 #prompt_text
-
 imageprompts =image_prompt(result)
-
-joined_prompts =";".join(imageprompts) if imageprompts else "fashion outfits"
-
-prompt_text = f"generate 3 outfit in one picture based on the {joined_prompts}"
+#joined_prompts =";".join(imageprompts) if imageprompts else "fashion outfits"
+#prompt_text = f"generate 3 outfit in one picture based on the {joined_prompts}"
 
 #pay load
-files = {
-    "prompt" : (None, prompt_text),
-    "output_format": (None, "png"),
-}
+#files = {
+    #"prompt" : (None, prompt_text),
+    #"output_format": (None, "png"),
+#}
 
 #header
 headers = {
     "Authorization": f"Bearer {api_key}",
     "Accept": "application/json",
 }
+
+for n, prompt_text in enumerate(imageprompts, start=1):
+    files ={
+        "prompt": (None, prompt_text),
+        "output_format": (None, "png"),
+    }
 
 #send api
 response = requests.post(api_url, files=files, headers=headers)
@@ -115,9 +124,10 @@ if response.status_code == 200:
     image_data = response.json()["image"]
 
     #save image
-    with open("generated_image.png", "wb") as f:
+    filename = f"generated_image{n}.png"
+    with open( filename, "wb") as f:
         f.write(base64.b64decode(image_data))
-    print("image saved")
+    print(f" {n} image saved")
 else:
-    print(f" Error: {response.status_code} - {response.text}")
+    print(f" Error:image {n}, {response.status_code} - {response.text}")
 
