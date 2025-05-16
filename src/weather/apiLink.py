@@ -42,5 +42,5 @@ def get_weather_auto( day : int = 0 ):
     page_no = 1
     return get_weather_manual( pos, date_int, corrent_time )
 
-if __name__ == __main__:
+if __name__ == "__main__":
     get_weather_auto()
