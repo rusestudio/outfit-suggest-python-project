@@ -40,6 +40,6 @@ def get_posision() -> List[float,float]:
     url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={service_key}'
     
     response = requests.post(url)['location']
-    lat = round(location['lat'], 2)
-    lng = round(location['lng'], 2)
+    lat = round(response['lat'], 2)
+    lng = round(response['lng'], 2)
     return [lat,lng]
