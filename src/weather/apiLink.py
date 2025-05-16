@@ -1,19 +1,52 @@
 import requests
 import datetime
 import json
-from get_data import get_location
+from get_data import *
 from typing import Tuple
 import os
 
-# get weather from API
-def get_weather_manual( pos : Tuple[float,float], date : int, time : int 
+
+def get_weather_manual( pos : Tuple[int,int], date : int, time : int 
                        , number_of_rows : int = 10, page_number : int = 1 
-                       , data_type : str = 'JSON', day : int = 0 ):
-    # key and url
-    
-    service_key = "S1BaX+xBN5BHD/KvjHaEAjAUw0cifZi2CdoDIeShd6bQ+EWcanogJq5s4v5t32PLhSdymB6jglQwMW9+8O1QFw=="
+                       , data_type : str = 'JSON', day : int = 0 ): 
+    """
+    Get weather data
+
+    Args:
+        pos : Tuple[x cordinate, y cordinate]
+            ATTANTION! x, y cordinate are NOT latitude and longitude.
+
+        date : YYYYMMDD
+            Y : Year
+            M : Month
+            D : Day
+
+        time : HHmm
+            H : Hour
+            m : Min
+
+        number_of_rows : rows when response
+
+        page_number : page :)
+
+        data_type : XML or JSON
+
+        day : Get the weather for this number of days
+            in the past
+            
+    """
+    try:
+        with open(".key/.servicekey_decode",r):
+            service_key = "S1BaX+xBN5BHD/KvjHaEAjAUw0cifZi2CdoDIeShd6bQ+EWcanogJq5s4v5t32PLhSdymB6jglQwMW9+8O1QFw=="
+    except Exception as e:
+        print(e)
+        return None
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
  
+    '''
+    Even if you change the variable,
+        DO NOT CHANGE THE FORMAT BELOW
+    '''
     params = {
         'serviceKey' : service_key,
         'numOfRows' : number_of_rows,
@@ -24,12 +57,17 @@ def get_weather_manual( pos : Tuple[float,float], date : int, time : int
         'nx' : pos[0],
         'ny' : pos[1]
     }
-    print(params)
-
-    return requests.get(url,params)
+    result = requests.get(url,params)
+    if result.ok:
+        return result
+    else:
+        print(f'Fatal! : fail requests (status code : {result.status_code})')
+        return result
+    return 
 
 def get_weather_auto( day : int = 0 ):
-    pos = get_location()
+    latlon = get_location()
+    pos = latlon_to_grid(latlon)
     
     num_of_rows = 10
     
@@ -60,5 +98,4 @@ def parse_weather_items(response):
 if __name__ == "__main__":
     val = get_weather_auto()
     print(val)
-    print(val.text)
     print(parse_weather_items(val))
