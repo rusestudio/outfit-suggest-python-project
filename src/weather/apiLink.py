@@ -1,15 +1,19 @@
 import requests
 import datetime
 import json
-from weather.get_data import get_location
+from get_data import get_location
 from typing import Tuple
+import os
 
 # get weather from API
 def get_weather_manual( pos : Tuple[float,float], date : int, time : int 
                        , number_of_rows : int = 10, page_number : int = 1 
                        , data_type : str = 'JSON', day : int = 0 ):
     # key and url
-    with open(".key/.sevicekey_decode",'r') as f:
+    
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    key_file = os.path.join(base_dir, ".key", ".servicekey_decode")
+    with open(key_file,'r') as f:
         service_key = f.read()
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
  
@@ -43,4 +47,5 @@ def get_weather_auto( day : int = 0 ):
     return get_weather_manual( pos, date_int, corrent_time )
 
 if __name__ == "__main__":
-    get_weather_auto()
+    val = get_weather_auto()
+    
