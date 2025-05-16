@@ -1,7 +1,7 @@
 import requests
 import datetime
 import json
-from get_data import get_location
+from weather.get_data import get_location
 from typing import Tuple
 
 # get weather from API
