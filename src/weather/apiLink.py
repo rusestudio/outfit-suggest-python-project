@@ -78,8 +78,6 @@ def get_weather_auto( day : int = 0 ):
     # may be... 
     # It does not work
     #   when the years change every year.
-    # I know it is inaccurate, but
-    #   I AM FxxKING TIRED
     # someone will be fix it :)
     corrent_time = (date_int%10000)/100 # get hour and min
     
