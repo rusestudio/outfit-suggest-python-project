@@ -9,7 +9,7 @@ import base64
 genai.configure(api_key="AIzaSyC8YOsoIj5YuWex1muFSwXCGwcDOaAUUAY")
 
 #api define picture
-api_key ="sk-JPMYX9EfEeL81uMolAfYeIjITWe2XORs0HuGtCkyPXFZwhT9"
+api_key ="sk-pANMxceDTa4mKb2zmYeAVE3aFYUhsD5ODjVkhw4ZnIWydXMa"
 api_url ="https://api.stability.ai/v2beta/stable-image/generate/sd3"
 
 
@@ -115,19 +115,20 @@ for n, prompt_text in enumerate(imageprompts, start=1):
         "prompt": (None, prompt_text),
         "output_format": (None, "png"),
     }
+    #send api
+    #make respone in list append then request post
+    response = requests.post(api_url, files=files, headers=headers)
 
-#send api
-response = requests.post(api_url, files=files, headers=headers)
 
-#exception handle
-if response.status_code == 200:
-    image_data = response.json()["image"]
+    #exception handle
+    if response.status_code == 200:
+        image_data = response.json()["image"]
 
-    #save image
-    filename = f"generated_image{n}.png"
-    with open( filename, "wb") as f:
-        f.write(base64.b64decode(image_data))
-    print(f" {n} image saved")
-else:
-    print(f" Error:image {n}, {response.status_code} - {response.text}")
+     #save image
+        filename = f"generated_image{n}.png"
+        with open( filename, "wb") as f:
+            f.write(base64.b64decode(image_data))
+        print(f" {n} image saved")
+    else:
+        print(f" Error:image {n}, {response.status_code} - {response.text}")
 
