@@ -1,8 +1,8 @@
 About this branch
 
 1. clothes_data
-  -this folder have clothes data type and material data that were crawl from website
-  -refer src folder clothes_data_crawl.py
+   -this folder have clothes data type and material data that were crawl from website
+   -refer src folder clothes_data_crawl.py
    
 2. database-fastapi-html
    -this folder have sub folder of templates with user.html
