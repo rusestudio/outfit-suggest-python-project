@@ -1,1 +1,0 @@
-from apiLink import get_weather
