@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User List</title>
+</head>
+<body>
+    <h1>User List</h1>
+    {% if users %}
+        <table border="1">
+            <tr>
+                <th>ID</th>
+                <th>Password</th>
+                <th>Sex</th>
+                <th>Age</th>
+                <th>Height</th>
+                <th>Weight</th>
+            </tr>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.password }}</td> <!--direct use jinja to call data from database-->
+                    <td>{{ user.sex }}</td>
+                    <td>{{ user.age }}</td>
+                    <td>{{ user.height }}</td>
+                    <td>{{ user.weight }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No users found.</p>
+    {% endif %}
+</body>
+</html>
+

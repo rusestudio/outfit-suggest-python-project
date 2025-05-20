@@ -7,6 +7,8 @@ app = FastAPI()
 # Set up templates directory
 templates = Jinja2Templates(directory="templates")
 
+#dummy pydantic data
+#will be implement as sqlmodel by 용한님님
 class loginData(BaseModel):
     id: str
     password: str
