@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Form</title>
+</head>
+<body>
+
+<h2>Login Form</h2>
+
+<form id="loginForm">
+    <label for="id">ID:</label><br>
+    <input type="text" id="id" name="id" required><br><br>
+
+    <label for="password">Password:</label><br>
+    <input type="password" id="password" name="password" required><br><br>
+
+    <label for="sex">Sex:</label><br>
+    <select id="sex" name="sex">
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="other">Other</option>
+    </select><br><br>
+
+    <label for="age">Age:</label><br>
+    <input type="number" id="age" name="age" required><br><br>
+
+    <label for="height">Height (cm):</label><br>
+    <input type="number" id="height" name="height" step="0.1" required><br><br>
+
+    <label for="weight">Body Weight (kg):</label><br>
+    <input type="number" id="weight" name="weight" step="0.1" required><br><br>
+
+    <input type="submit" value="Submit">
+</form>
+
+<div id="result"></div>
+
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async function(event) {
+    event.preventDefault(); // prevent default form submission
+
+    const data = {
+        id: document.getElementById("id").value,
+        password: document.getElementById("password").value,
+        sex: document.getElementById("sex").value,
+        age: parseInt(document.getElementById("age").value),
+        height: parseFloat(document.getElementById("height").value),
+        weight: parseFloat(document.getElementById("weight").value),
+    };
+
+    try {
+        const response = await fetch("/submit", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        const resultDiv = document.getElementById("result"); //print result at html
+        resultDiv.textContent = "Server response: " + JSON.stringify(result);
+    } catch (error) {
+        alert("Error: " + error);
+    }
+});
+</script>
+
+</body>
+</html>
