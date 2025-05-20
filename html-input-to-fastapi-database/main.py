@@ -22,7 +22,7 @@ class loginData(BaseModel):
 def get_page(request: Request):
     return templates.TemplateResponse("index.html", {"request":request})
 
-#사용자에게 입력데이터 저장할 수있게게
+#사용자에게 입력데이터 database으로 저장할 수있게게
 @app.post("/submit")
 async def submit_form(data: loginData):
     #save the data to the database 용한님 refer
