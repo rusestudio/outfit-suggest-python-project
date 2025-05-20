@@ -1,15 +1,20 @@
+import requests
 import datetime
 import json
-from typing import Tuple
-
-import requests
+from requests.exceptions import RequestException
 
 from weather import get_data
+from typing import Tuple, Dict
 
+class APIResponseError(Exception):
+    def __init__(self, code, message):
+        super().__init__(f"API Error Code {code}: {message}")
+        self.code = code
+        self.message = message
 
 def get_weather_manual( pos : Tuple[int,int], date : str, time : str 
                        , number_of_rows : int = 10, page_number : int = 1 
-                       , data_type : str = 'JSON')->json: 
+                       , data_type : str = 'JSON')-> dict: 
     """
     Get weather data
 
@@ -35,12 +40,6 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
         day : Get the weather for this number of days
             in the past   
     """
-    print(f"pos: {pos}")
-    print(f"date: {date}")
-    print(f"time: {time}")
-    print(f"number_of_rows: {number_of_rows}")
-    print(f"page_number: {page_number}")
-    print(f"data_type: {data_type}")
     try:
         with open("weather/.key/.servicekey_decode",'r') as f:
             service_key = f.read()
@@ -62,15 +61,23 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
         'nx' : pos[0],
         'ny' : pos[1]
     }
-    result = requests.get(url,params)
-    print(result.text)
-    if result.ok:
-        return result
-    else:
-        print(f'Fatal! : fail requests (status code : {result.status_code})')
-        return result
+    try:
+        result = requests.get(url,params)
+        result.raise_for_status()
+        result = result.json()
 
-def get_weather_auto( day : int = 0 ):
+        head = result.get("response",{}).get("header",{})
+        result_code = head.get("resultCode")
+        result_msg = head.get("resultMsg")
+
+        if result_code != "00":
+            raise APIResponseError(result_code, result_msg)
+        return result['response']['body']['items']['item']
+
+    except APIResponseError as api_error:
+        print(f"[API error] {api_error}")
+
+def get_weather_auto( day : int = 0 ) -> Dict:
     '''
     Get weather easier
 
@@ -99,17 +106,15 @@ def get_weather_auto( day : int = 0 ):
     # Think about it on your own
     # I don't want to comment >:(
     corrent_date = date_int/10000
-
-    return get_weather_manual( pos, corrent_date, corrent_time )
+    
+    result = get_weather_manual( pos, corrent_date, corrent_time )
+    return result
 
 def response_to_json(response):
-    print(response)
     result = response.json()
-    print(result)
     return result['response']['body']['items']['item']
 
 def json_to_text(file: json):
-    print(file)
     return json.dumps(file)
 
 def parse_weather_items(response):
