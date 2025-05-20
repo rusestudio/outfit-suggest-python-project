@@ -14,7 +14,7 @@ class APIResponseError(Exception):
 
 def get_weather_manual( pos : Tuple[int,int], date : str, time : str 
                        , number_of_rows : int = 10, page_number : int = 1 
-                       , data_type : str = 'JSON')-> dict: 
+                       , data_type : str = 'JSON'): 
     """
     Get weather data
 
@@ -39,6 +39,8 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
 
         day : Get the weather for this number of days
             in the past   
+    Return:
+        JSON
     """
     try:
         with open("weather/.key/.servicekey_decode",'r') as f:
@@ -72,8 +74,7 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
 
         if result_code != "00":
             raise APIResponseError(result_code, result_msg)
-        return result['response']['body']['items']['item']
-
+        return result
     except APIResponseError as api_error:
         print(f"[API error] {api_error}")
 
@@ -110,24 +111,17 @@ def get_weather_auto( day : int = 0 ) -> Dict:
     result = get_weather_manual( pos, corrent_date, corrent_time )
     return result
 
-def response_to_json(response):
-    result = response.json()
-    return result['response']['body']['items']['item']
-
 def json_to_text(file: json):
     return json.dumps(file)
 
 def parse_weather_items(response):
-    items = response_to_json(response)
+    items = response['response']['body']['items']['item']
     result = {}
     for item in items:
         category = item['category']
         val = item['fcstValue']
         result[category] = val
     return result
-
-def testfunc():
-    print("Yeeeeeee")
 
 if __name__ == "__main__":
     val = get_weather_auto()
