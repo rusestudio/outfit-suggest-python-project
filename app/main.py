@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import os
 
 import weather.apiLink as apiLink
+import weather.get_data as get_data
 
 app = FastAPI()
 
@@ -19,21 +20,16 @@ class Location(BaseModel):
     latitude: float
     longitude: float
 
-# 예시: 위치 기반 날씨 조회 함수 (임시)
-def your_weather_func(lat: float, lon: float):
-    # 실제 구현 대신 샘플 데이터 반환
-    return {
-        "latitude": lat,
-        "longitude": lon,
-        "weather": "맑음",
-        "temperature": "25도"
-    }
-
 @app.post("/weather")
 async def get_weather(location: Location):
     lat = location.latitude
     lon = location.longitude
-    weather_data = apiLink.get_weather_manual([lat,lon],20250520,2126)
+    print(f"{lat},{lon}")
+    pos = get_data.latlon_to_grid(tuple([lat,lon]))
+    print("1 backtrace")
+    weather_data = apiLink.get_weather_manual(pos,"20250520","0800")
+    weather_data = apiLink.parse_weather_items(weather_data)
+    weather_data = apiLink.json_to_text(weather_data)
     return weather_data
 
 @app.get("/", response_class=HTMLResponse)
