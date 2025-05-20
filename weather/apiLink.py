@@ -1,12 +1,13 @@
 import requests
 import datetime
 import json
-from .get_data import *
+
+from weather import get_data
 from typing import Tuple
 
-def get_weather_manual( pos : Tuple[int,int], date : int, time : int 
+def get_weather_manual( pos : Tuple[int,int], date : str, time : str 
                        , number_of_rows : int = 10, page_number : int = 1 
-                       , data_type : str = 'JSON', day : int = 0 ): 
+                       , data_type : str = 'JSON')->json: 
     """
     Get weather data
 
@@ -32,8 +33,14 @@ def get_weather_manual( pos : Tuple[int,int], date : int, time : int
         day : Get the weather for this number of days
             in the past   
     """
+    print(f"pos: {pos}")
+    print(f"date: {date}")
+    print(f"time: {time}")
+    print(f"number_of_rows: {number_of_rows}")
+    print(f"page_number: {page_number}")
+    print(f"data_type: {data_type}")
     try:
-        with open("app\.key\.servicekey_decode",'r') as f:
+        with open("weather/.key/.servicekey_decode",'r') as f:
             service_key = f.read()
     except Exception as e:
         print(e)
@@ -48,12 +55,13 @@ def get_weather_manual( pos : Tuple[int,int], date : int, time : int
         'numOfRows' : number_of_rows,
         'pageNo' : page_number,
         'dataType' : data_type,
-        'base_date' : int(date) + day,
+        'base_date' : date,
         'base_time' : time,
         'nx' : pos[0],
         'ny' : pos[1]
     }
     result = requests.get(url,params)
+    print(result.text)
     if result.ok:
         return result
     else:
@@ -68,8 +76,8 @@ def get_weather_auto( day : int = 0 ):
         day : Get the weather for this number of days
             in the past 
     '''
-    latlon = get_location()
-    pos = latlon_to_grid(latlon)
+    latlon = get_data.get_location()
+    pos = get_data.latlon_to_grid(latlon)
     
     date_int = int((datetime.datetime.now() + datetime.timedelta(days=day)).strftime("%Y%m%d%H%M"))
 
@@ -93,10 +101,13 @@ def get_weather_auto( day : int = 0 ):
     return get_weather_manual( pos, corrent_date, corrent_time )
 
 def response_to_json(response):
+    print(response)
     result = response.json()
+    print(result)
     return result['response']['body']['items']['item']
 
 def json_to_text(file: json):
+    print(file)
     return json.dumps(file)
 
 def parse_weather_items(response):
@@ -107,6 +118,9 @@ def parse_weather_items(response):
         val = item['fcstValue']
         result[category] = val
     return result
+
+def testfunc():
+    print("Yeeeeeee")
 
 if __name__ == "__main__":
     val = get_weather_auto()
