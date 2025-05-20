@@ -20,6 +20,7 @@ class Location(BaseModel):
     latitude: float
     longitude: float
 
+# get weather
 @app.post("/weather")
 async def get_weather(location: Location):
     lat = location.latitude
@@ -32,6 +33,7 @@ async def get_weather(location: Location):
     weather_data = apiLink.json_to_text(weather_data)
     return weather_data
 
+# root server
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request}) 
