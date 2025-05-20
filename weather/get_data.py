@@ -16,7 +16,7 @@ YO = 136         # Reference Y cordinate
 def get_location() -> Tuple[float,float]:
     return [37.5665,126.9780]
 
-def latlon_to_grid( pos : Tuple[float,float] ):
+def latlon_to_grid( pos : Tuple[float,float] ) -> Tuple[int,int]:
     DEGRAD = math.pi / 180.0
 
     re = RAD / GRID
