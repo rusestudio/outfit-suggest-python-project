@@ -10,9 +10,9 @@ import weather.get_data as get_data
 
 app = FastAPI()
 
+# dir setting for server
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
-
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # 클라이언트에서 받을 위치 정보 모델
