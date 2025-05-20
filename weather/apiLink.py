@@ -33,7 +33,7 @@ def get_weather_manual( pos : Tuple[int,int], date : int, time : int
             in the past   
     """
     try:
-        with open("src\weather\.key\.servicekey_decode",'r') as f:
+        with open("app\.key\.servicekey_decode",'r') as f:
             service_key = f.read()
     except Exception as e:
         print(e)
@@ -53,7 +53,6 @@ def get_weather_manual( pos : Tuple[int,int], date : int, time : int
         'nx' : pos[0],
         'ny' : pos[1]
     }
-    print(params)
     result = requests.get(url,params)
     if result.ok:
         return result
