@@ -9,10 +9,9 @@ import weather.apiLink as apiLink
 import weather.get_data as get_data
 
 app = FastAPI()
-
-# dir setting for server
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # 클라이언트에서 받을 위치 정보 모델
@@ -30,10 +29,8 @@ async def get_weather(location: Location):
     print("1 backtrace")
     weather_data = apiLink.get_weather_manual(pos,"20250520","0800")
     weather_data = apiLink.parse_weather_items(weather_data)
-    weather_data = apiLink.json_to_text(weather_data)
     return weather_data
 
-# root server
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request}) 
