@@ -4,8 +4,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
-from . import apiLink
-from . import get_data
 
 
 app = FastAPI()
@@ -34,7 +32,7 @@ def your_weather_func(lat: float, lon: float):
 async def get_weather(location: Location):
     lat = location.latitude
     lon = location.longitude
-    weather_data = apiLink.get_weather_manual([lat,lon],20250520,2030)
+    weather_data = [lat,lon]
     return weather_data
 
 @app.get("/", response_class=HTMLResponse)
