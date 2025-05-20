@@ -27,8 +27,14 @@
    - this folder contains
      1. clothes_data_crawl.py
         - here is the part where we crawl the clothes data from websites.
-     2. gemini_suggest_dummy.py
-        - here is the part where we send the weather,clothes, user info to llm to get
-        clothes suggestion and also images prompt.
+     2. data_to_be_prompt.py
+        - here is where all the data that will be send to llm model prompt
+          where it will be called from database
+     3. llm_model_suggest.py
+        - here is the part where we send the weather,clothes,user info to llm model
+          to get clothes suggestion and also images prompt.
         - due to no budget project we use different llm model to generate images.
         - the images the will be saved at generated_img_data folder.
+     4. prompt.py
+        - here is where the prompts is build for clothes suggestion and also
+        - for image to be generate
