@@ -13,6 +13,7 @@
    
 4. generated_img_data
    - this is the folder that the generated img data will be store
+   - refer src folder gemini_suggest_dummy.py
    - later this data might be save in database
    
 5. html-input-to-fastapi-database
