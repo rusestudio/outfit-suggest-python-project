@@ -1,9 +1,11 @@
-import requests
 import datetime
 import json
+from typing import Tuple
+
+import requests
 
 from weather import get_data
-from typing import Tuple
+
 
 def get_weather_manual( pos : Tuple[int,int], date : str, time : str 
                        , number_of_rows : int = 10, page_number : int = 1 
