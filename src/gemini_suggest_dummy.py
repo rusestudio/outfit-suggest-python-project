@@ -39,6 +39,7 @@ clothes_data = {
 
 #create prompt
 def build_prompt(weather_data, clothes_data):
+        #you are age, sex, height, body weight. //to be change based on user login data
         prompt = f"""
         you are a university student age early 20.
         Current weather conditions:
@@ -125,7 +126,7 @@ for n, prompt_text in enumerate(imageprompts, start=1):
         image_data = response.json()["image"]
 
      #save image
-        filename = f"generated_image{n}.png"
+        filename = f"../generated_img_data/generated_image{n}.png"
         with open( filename, "wb") as f:
             f.write(base64.b64decode(image_data))
         print(f" {n} image saved")
