@@ -64,7 +64,7 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
         'ny' : pos[1]
     }
     try:
-        result = requests.get(url,params)
+        result = requests.get(url,params, timeout=1)
         result.raise_for_status()
         result = result.json()
 
@@ -76,7 +76,14 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
             raise APIResponseError(result_code, result_msg)
         return result
     except APIResponseError as api_error:
-        print(f"[API error] {api_error}")
+        print(f"[Error] {api_error}")
+        raise
+    except ValueError:
+        print("[Error]: JSON FAIL")
+        raise
+    except RecursionError as req_error:
+        print(f"[Error]: Request FAIL {req_error}")
+        raise
 
 def get_weather_auto( day : int = 0 ) -> Dict:
     '''
@@ -110,9 +117,6 @@ def get_weather_auto( day : int = 0 ) -> Dict:
     
     result = get_weather_manual( pos, corrent_date, corrent_time )
     return result
-
-def json_to_text(file: json):
-    return json.dumps(file)
 
 def parse_weather_items(response):
     items = response['response']['body']['items']['item']
