@@ -2,25 +2,30 @@ import json
 
 # weather data, dummy test data
 weather_data = {
-    "temperature": 19,  # Celsius
-    "wind": "4",  # or value in km/h
-    "rain": "heavy rain",
-    "humidity": 77,
-    "air_pressure": 1011,
-    "location_type": "outdoor",  # or 'indoor'
+    "temperature": 30,  # Celsius
+    "wind": "2",  # or value in km/h
+    "rain": "no rain", #%
+    "humidity": 30,
+    "air_pressure": 1017,
 }
 
 # dummy user data
 user_data = {
     "sex": "male",
-    "age": 10,
-    "height": 140,
-    "weight": 40,
+    "age": 20,
+    "height": 160,
+    "weight": 60,
+    "body_temp": 2, #normal=0 #추의=1 #더의=2
+    "clothes_info": "t-shirt"
 }
 
-# dummy user input data from html
-# do we need? KIV
-# user_preference = {}
+user_preference_dday = {
+   "location_type": "",  # outdoor or 'indoor'실내 이용목적
+}
+
+user_preference_fday={
+    "goals_to_wear": "beach vacation" #이용목적 예:바다여행
+}
 
 # clothes data
 # Load clothes data from files

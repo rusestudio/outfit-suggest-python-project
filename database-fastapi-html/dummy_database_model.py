@@ -7,6 +7,7 @@ class User(SQLModel, table=True):
     #dummy data
     #real database to be implement by 용한님
     id: int | None = Field(default=None, primary_key=True)
+    userid: str
     password: str
     sex: str
     age: int

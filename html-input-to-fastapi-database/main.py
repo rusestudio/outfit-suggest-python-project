@@ -11,6 +11,7 @@ templates = Jinja2Templates(directory="templates")
 #will be implement as sqlmodel by 용한님님
 class loginData(BaseModel):
     id: str
+    userid: str
     password: str
     sex: str
     age: int

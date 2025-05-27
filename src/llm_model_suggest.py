@@ -1,18 +1,19 @@
 import base64
 import json
 import re
+import uuid
 
 import google.generativeai as genai
 import requests
 
-from data_to_be_prompt import clothes_data, user_data, weather_data
+from data_to_be_prompt import user_data,weather_data, clothes_data,user_preference_dday,user_preference_fday
 from prompt import build_prompt, image_prompt
 
 # gemini text api define
 genai.configure(api_key="AIzaSyC8YOsoIj5YuWex1muFSwXCGwcDOaAUUAY")
 
 # api define picture
-api_key = "sk-pANMxceDTa4mKb2zmYeAVE3aFYUhsD5ODjVkhw4ZnIWydXMa"
+api_key = "sk-JMYyFEVPfYvhzmfZmh3i5YRB7oEAM2DUYl7oTXfLANbGltQ1"
 api_url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
 
 
@@ -24,7 +25,7 @@ def get_result(prompt: str):
 
 def main():
     # call def build prompt
-    prompt = build_prompt(user_data, weather_data, clothes_data)
+    prompt = build_prompt(user_data,weather_data, clothes_data,user_preference_dday,user_preference_fday)
 
     # call gemini
     result = get_result(prompt)
@@ -52,8 +53,8 @@ def main():
         if response.status_code == 200:
             image_data = response.json()["image"]
 
-            # save image
-            filename = f"../generated_img_data/generated_image{n}.png"
+            # save image to database by 용한님님
+            filename = f"../generated_img_data/generated_image{uuid.uuid4()}.png"
             with open(filename, "wb") as f:
                 f.write(base64.b64decode(image_data))
             print(f" {n} image saved")
