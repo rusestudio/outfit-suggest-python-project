@@ -85,15 +85,17 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
         print(f"[Error]: Request FAIL {req_error}")
         raise
 
-def get_weather_auto( day : int = 0 ) -> Dict:
+def get_weather_auto( lat : float , lon : float , day : int = 0 ) -> Dict:
     '''
     Get weather easier
 
     Param:
         day : Get the weather for this number of days
             in the past 
+
+        Dictionary : 
+            key
     '''
-    latlon = get_data.get_location()
     pos = get_data.latlon_to_grid(latlon)
     
     date_int = int((datetime.datetime.now() + datetime.timedelta(days=day)).strftime("%Y%m%d%H%M"))
@@ -115,7 +117,7 @@ def get_weather_auto( day : int = 0 ) -> Dict:
     # I don't want to comment >:(
     corrent_date = date_int/10000
     
-    result = get_weather_manual( pos, corrent_date, corrent_time )
+    result = get_weather_manual( lat, lon , corrent_date, corrent_time )
     return result
 
 def parse_weather_items(response):
