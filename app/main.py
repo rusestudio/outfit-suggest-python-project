@@ -25,9 +25,9 @@ async def get_weather(location: Location):
     lat = location.latitude
     lon = location.longitude
     print(f"{lat},{lon}")
-    pos = get_data.latlon_to_grid(tuple([lat,lon]))
+    pos = get_data.combert_latlon_to_grid(lat,lon)
     print("1 backtrace")
-    weather_data = apiLink.get_weather_manual(pos,"20250520","0800")
+    weather_data = apiLink.get_weather_manual(pos,"20250527","0800")
     weather_data = apiLink.parse_weather_items(weather_data)
     return weather_data
 
