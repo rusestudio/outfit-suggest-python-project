@@ -48,10 +48,10 @@ def combert_latlon_to_grid( lat, lon ) -> Tuple[int,int]:
     Change latitude and longitude to Korean weather grid coordinates.
 
     Param:
-        pos : Tuple[float, float]
-            Index[0] : latitude
-            Index[1] : longitude
-
+        lat : float
+            corrent latation
+        lon : float
+            corrent lon
     return:
         grid : Tuple[int, int]
             Index[0] : grid xpos
