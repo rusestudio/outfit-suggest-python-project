@@ -1,10 +1,8 @@
 import requests
 import datetime
-import json
-from requests.exceptions import RequestException
+from typing import Dict
 
-import get_data
-from typing import Tuple, Dict
+from . import get_data
 
 class APIResponseError(Exception):
     def __init__(self, code, message):
@@ -12,43 +10,148 @@ class APIResponseError(Exception):
         self.code = code
         self.message = message
 
-def get_weather_manual( xpos : int, ypos : int, date : str, time : str 
+def get_weather_manual_MidTa( time : str , regid : str
                        , number_of_rows : int = 10, page_number : int = 1 
                        , data_type : str = 'JSON'): 
     """
     Get weather data
 
     Args:
-        pos : Tuple[x cordinate, y cordinate]
-            ATTANTION! x, y cordinate are NOT latitude and longitude.
+        xpos : float
+            x KMA grid coordinate
+                NOT latitude
 
-        date : YYYYMMDD
+        ypos : float
+            y KMA grid coordinate
+                NOT longitude
+
+        date : str
+            format : YYYYMMDD
             Y : Year
             M : Month
             D : Day
-
-        time : HHmm
+            
+        time : str
+            format : HHmm
             H : Hour
             m : Min
 
-        number_of_rows : rows when response
+        number_of_rows : int
+            rows of response result
 
-        page_number : page :)
+        page_number : int
+            page :)
 
-        data_type : XML or JSON
+        data_type : str
+            XML or JSON
 
-        day : Get the weather for this number of days
-            in the past   
+        day : int 
+            Get the weather for this number of days
+                in the past   
     Return:
         JSON
+    
+    Except:
+        APIResponseError :
+            It is generated When data got from KMA, is error
+        
+        
     """
     try:
         with open("weather/.key/.servicekey_decode",'r') as f:
             service_key = f.read()
+    except FileNotFoundError as e:
+        raise
     except Exception as e:
-        print(e)
+        raise
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
-    print(service_key)
+ 
+    '''
+    Even if you change the variable,
+        DO NOT CHANGE THE FORMAT BELOW
+    '''
+    params = {
+        'serviceKey' : service_key,
+        'numOfRows' : number_of_rows,
+        'pageNo' : page_number,
+        'dataType' : data_type,
+        'regid' : regid,
+        'tmFc' : time
+    }
+
+    try:
+        result = requests.get(url,params, timeout=1)
+        result.raise_for_status()
+        result = result.json()
+
+        head = result.get("response",{}).get("header",{})
+        result_code = head.get("resultCode")
+        if result_code != "00":
+            raise APIResponseError(result_code, result_msg)
+        result_msg = head.get("resultMsg") 
+    except APIResponseError as api_error:
+        raise
+    except ValueError:
+        raise
+    except RecursionError as req_error:
+        raise
+    return result
+
+def get_weather_manual_VFcst( xpos : int, ypos : int, date : str, time : str 
+                       , number_of_rows : int = 10, page_number : int = 1 
+                       , data_type : str = 'JSON'): 
+    """
+    Get weather data
+
+    Args:
+        xpos : float
+            x KMA grid coordinate
+                NOT latitude
+
+        ypos : float
+            y KMA grid coordinate
+                NOT longitude
+
+        date : str
+            format : YYYYMMDD
+            Y : Year
+            M : Month
+            D : Day
+            
+        time : str
+            format : HHmm
+            H : Hour
+            m : Min
+
+        number_of_rows : int
+            rows of response result
+
+        page_number : int
+            page :)
+
+        data_type : str
+            XML or JSON
+
+        day : int 
+            Get the weather for this number of days
+                in the past   
+    Return:
+        JSON
+    
+    Except:
+        APIResponseError :
+            It is generated When data got from KMA, is error
+        
+        
+    """
+    try:
+        with open("weather/.key/.servicekey_decode",'r') as f:
+            service_key = f.read()
+    except FileNotFoundError as e:
+        raise
+    except Exception as e:
+        raise
+    url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
  
     '''
     Even if you change the variable,
@@ -64,6 +167,7 @@ def get_weather_manual( xpos : int, ypos : int, date : str, time : str
         'nx' : xpos,
         'ny' : ypos
     }
+
     try:
         result = requests.get(url,params, timeout=1)
         result.raise_for_status()
@@ -71,20 +175,17 @@ def get_weather_manual( xpos : int, ypos : int, date : str, time : str
 
         head = result.get("response",{}).get("header",{})
         result_code = head.get("resultCode")
-        result_msg = head.get("resultMsg")
-
         if result_code != "00":
             raise APIResponseError(result_code, result_msg)
-        return result
+        result_msg = head.get("resultMsg") 
     except APIResponseError as api_error:
-        print(f"[Error] {api_error}")
         raise
     except ValueError:
-        print("[Error]: JSON FAIL")
         raise
     except RecursionError as req_error:
-        print(f"[Error]: Request FAIL {req_error}")
         raise
+    return result
+
 
 def get_weather_auto( lat : float , lon : float , day : int = 0 ) -> Dict:
     '''
@@ -119,7 +220,7 @@ def get_weather_auto( lat : float , lon : float , day : int = 0 ) -> Dict:
     # I don't want to comment >:(
     corrent_date = date_int/10000
     
-    result = get_weather_manual( xgrid, ygrid , corrent_date, corrent_time )
+    result = get_weather_manual_VFcst( xgrid, ygrid , corrent_date, corrent_time )
     return result
 
 def parse_weather_items(response):
