@@ -5,8 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
 
-import weather.apiLink as apiLink
-import weather.get_data as get_data
+from .weather import apiLink
 
 app = FastAPI()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,9 +24,7 @@ async def get_weather(location: Location):
     lat = location.latitude
     lon = location.longitude
     print(f"{lat},{lon}")
-    pos = get_data.combert_latlon_to_grid(lat,lon)
-    print("1 backtrace")
-    weather_data = apiLink.get_weather_manual(pos,"20250527","0800")
+    weather_data = apiLink.get_weather_auto("20250527","0800")
     weather_data = apiLink.parse_weather_items(weather_data)
     return weather_data
 
