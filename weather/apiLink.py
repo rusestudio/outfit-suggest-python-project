@@ -3,7 +3,7 @@ import datetime
 import json
 from requests.exceptions import RequestException
 
-from weather import get_data
+import get_data
 from typing import Tuple, Dict
 
 class APIResponseError(Exception):
@@ -12,7 +12,7 @@ class APIResponseError(Exception):
         self.code = code
         self.message = message
 
-def get_weather_manual( pos : Tuple[int,int], date : str, time : str 
+def get_weather_manual( xpos : int, ypos : int, date : str, time : str 
                        , number_of_rows : int = 10, page_number : int = 1 
                        , data_type : str = 'JSON'): 
     """
@@ -48,6 +48,7 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
     except Exception as e:
         print(e)
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
+    print(service_key)
  
     '''
     Even if you change the variable,
@@ -60,8 +61,8 @@ def get_weather_manual( pos : Tuple[int,int], date : str, time : str
         'dataType' : data_type,
         'base_date' : date,
         'base_time' : time,
-        'nx' : pos[0],
-        'ny' : pos[1]
+        'nx' : xpos,
+        'ny' : ypos
     }
     try:
         result = requests.get(url,params, timeout=1)
@@ -96,7 +97,7 @@ def get_weather_auto( lat : float , lon : float , day : int = 0 ) -> Dict:
         Dictionary : 
             key
     '''
-    pos = get_data.latlon_to_grid(latlon)
+    xgrid, ygrid = get_data.latlon_to_grid(lat,lon)
     
     date_int = int((datetime.datetime.now() + datetime.timedelta(days=day)).strftime("%Y%m%d%H%M"))
 
@@ -111,13 +112,14 @@ def get_weather_auto( lat : float , lon : float , day : int = 0 ) -> Dict:
     corrent_time = int(corrent_time - ((corrent_time-2)%3))%24
     
     # It makes 02,05,08,11,14,17,20,23
-    corrent_time = f'{corrent_time:02d}00'
+    # API provide data at 10min
+    corrent_time = f'{corrent_time:02d}10'
     
     # Think about it on your own
     # I don't want to comment >:(
     corrent_date = date_int/10000
     
-    result = get_weather_manual( lat, lon , corrent_date, corrent_time )
+    result = get_weather_manual( xgrid, ygrid , corrent_date, corrent_time )
     return result
 
 def parse_weather_items(response):
@@ -128,8 +130,3 @@ def parse_weather_items(response):
         val = item['fcstValue']
         result[category] = val
     return result
-
-if __name__ == "__main__":
-    val = get_weather_auto()
-    print(val)
-    print(parse_weather_items(val))
