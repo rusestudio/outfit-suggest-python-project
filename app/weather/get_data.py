@@ -1,5 +1,5 @@
 from typing import Tuple
-from math import pi, tan, log, cos, pow, sin, radians, atan
+from math import pi, tan, log, cos, pow, sin
 from numba import njit
 
 # Variable for converting from lat,lon to grid
@@ -43,6 +43,7 @@ def latlon_to_grid(lat: float, lon: float,
 
     return [x, y]
 
+# 
 def combert_latlon_to_grid( lat, lon ) -> Tuple[int,int]:
     '''
     Change latitude and longitude to Korean weather grid coordinates.
@@ -57,9 +58,4 @@ def combert_latlon_to_grid( lat, lon ) -> Tuple[int,int]:
             Index[0] : grid xpos
             Index[1] : grid ypos
     '''
-    return latlon_to_grid(lat,lon,re,sf,sn,ro,XO,YO,olon)
-
-    
-
-if __name__ == "__main__":
-    print(combert_latlon_to_grid([37.5665,126.9780]))
+    return latlon_to_grid(lat,lon,re,sf,sn,ro,XO,YO,olon) 
