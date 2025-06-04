@@ -3,6 +3,7 @@ from requests.exceptions import HTTPError
 import logging as log
 import datetime
 from typing import Dict
+import json
 
 from config import SERVICE_KEY
 from . import get_data
@@ -14,42 +15,51 @@ class APIResponseError(Exception):
         self.message = message
 
 def handle_api_response_error(error:APIResponseError):
+    '''
+    function for APIResponseError logging
+
+    Params:
+        error(APIResponseError): error that will be handled
+    
+    Return:
+        errorcode(str): It can change to int
+    '''
     match error.code:
-            case "01":
-                log.error(f"Application_error: {error}")
-            case "02":
-                log.error(f"DB_error: {error}")
-            case "03":
-                log.warning(f"NODATA_ERROR: {error}")
-            case "04":
-                log.error(f"HTTP_ERROR: {error}")
-            case "05":
-                log.critical(f"SERVICETIME_OUT: {error}")
-            case "10":
-                log.warning(f"INVALID_REQUEST_PARAMETER_ERROR: {error}")
-            case "11":
-                log.warning(f"NO_MANDATORY_REQUEST_PARAMETERS_ERROR: {error}")
-            case "12":
-                log.warning(f"NO_OPENAPI_SERVICE_ERROR: {error}")
-            case "20":
-                log.error(f"SERVICE_ACCESS_DENIED_ERROR: {error}")
-            case "21":
-                log.warning(f"TEMPORARILY_DISABLE_THE_SERVICEKEY_ERROR: {error}")
-            case "22":
-                log.warning(f"LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR: {error}")
-            case "30":
-                log.critical(f"SERVICE_KEY_IS_NOT_REGISTERED_ERROR: {error}")
-            case "31":
-                log.critical(f"DEADLINE_HAS_EXPIRED_ERROR: {error}")
-            case "32":
-                log.critical(f"UNREGISTERED_IP_ERROR: {error}")
-            case "33":
-                log.critical(f"UNSIGNED_CALL_ERROR: {error}")
-            case "99":
-                log.error(f"UNKNOWN_ERROR: {error}")
-            case _:
-                log.warning(f"UNKNOWN_CODE ({error.code}): {error}")
-            
+        case "01":
+            log.error(f"Application_error: {error}")
+        case "02":
+            log.error(f"DB_error: {error}")
+        case "03":
+            log.warning(f"NODATA_ERROR: {error}")
+        case "04":
+            log.error(f"HTTP_ERROR: {error}")
+        case "05":
+            log.critical(f"SERVICETIME_OUT: {error}")
+        case "10":
+            log.warning(f"INVALID_REQUEST_PARAMETER_ERROR: {error}")
+        case "11":
+            log.warning(f"NO_MANDATORY_REQUEST_PARAMETERS_ERROR: {error}")
+        case "12":
+            log.warning(f"NO_OPENAPI_SERVICE_ERROR: {error}")
+        case "20":
+            log.error(f"SERVICE_ACCESS_DENIED_ERROR: {error}")
+        case "21":
+            log.warning(f"TEMPORARILY_DISABLE_THE_SERVICEKEY_ERROR: {error}")
+        case "22":
+            log.warning(f"LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR: {error}")
+        case "30":
+            log.critical(f"SERVICE_KEY_IS_NOT_REGISTERED_ERROR: {error}")
+        case "31":
+            log.critical(f"DEADLINE_HAS_EXPIRED_ERROR: {error}")
+        case "32":
+            log.critical(f"UNREGISTERED_IP_ERROR: {error}")
+        case "33":
+            log.critical(f"UNSIGNED_CALL_ERROR: {error}")
+        case _:
+            log.error(f"UNKNOWN_ERROR: {error}")
+
+    return error.code
+    
 
 def recive_weather_info( params : Dict, url:str, timeout: int = 1):
     """
@@ -90,21 +100,51 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
         raise
     return result
 
+def parse_weather_Mid_items( response ) :
+    items = response['response']['body']['items']['item']
+    result = {}
+    
+    for day in range(4,11):
+        day_key = f"{day}"
+        day_info = {}
+
+        if day < 7:
+            rn_am = items.get(f'rnSt{day}AM') 
+            rn_pm = items.get(f'rnSt{day}PM')
+
+            wf_am = items.get(f'wf{day}AM')
+            wf_pm = items.get(f'wf{day}PM')
+            
+            day_info['rnst'] = {'am': rn_am, 'pm' : rn_pm}
+            day_info['wf'] = {'am': wf_am, 'pm' : wf_pm}
+        else:
+            rn = items.get(f'rnSt{day}')
+            wf = items.get(f'wf{day}')
+            day_info['rnst'] = rn
+            day_info['wf'] = wf
+        result[day_key] = day_info
+
+    return result
+
+def parse_weather_vil_items(response):
+    items = response['response']['body']['items']['item']
+    result = {}
+    for item in items:
+        category = item['category']
+        val = item['fcstValue']
+        result[category] = val
+    return result
+
 def fetch_weather_manual_Mid( time : str , regid : str
-                       , number_of_rows : int = 10, page_number : int = 1 
-                       , data_type : str = 'JSON'): 
+                       , number_of_rows : int = 10, page_number : int = 1 ): 
     """
     Get Middle term weather data
 
     Args:
-        xpos (float): x KMA grid coordinate NOT latitude
-        ypos (float): y KMA grid coordinate NOT longitude
-        date (str): YYYYMMDD ( Y: year, M: month, D: day )
         time (str): HHmm ( H: hour, m: minute)
+        regid (str): location number
         number_of_rows (int): rows of response result
         page_number (int): page :)
-        data_type (str): 'XML' or 'JSON'
-        day (int): Get the weather for this number of days in the past   
 
     Returns :
         JSON
@@ -123,12 +163,21 @@ def fetch_weather_manual_Mid( time : str , regid : str
         'serviceKey' : SERVICE_KEY,
         'numOfRows' : number_of_rows,
         'pageNo' : page_number,
-        'dataType' : data_type,
+        'dataType' : 'JSON',
         'regid' : regid,
         'tmFc' : time
     }
- 
-    return recive_weather_info(params,url)
+    try:
+        return recive_weather_info(params,url)
+    except HTTPError as e:
+        log.error(f"HTTPError : {e}")
+        raise
+    except APIResponseError as e:
+        log.error(f"APIResponseError : {e}")
+        raise
+    except Exception as e:
+        log.error(f"UnexpectedError : {e}")
+        raise
 
 def fetch_weather_manual_Vil( xpos : int, ypos : int, date : str, time : str 
                        , number_of_rows : int = 10, page_number : int = 1 ): 
@@ -178,9 +227,9 @@ def fetch_weather_manual_Vil( xpos : int, ypos : int, date : str, time : str
     except RecursionError as e:
         return None
 
-def get_weather_auto( lat : float , lon : float , day : int = 0 ) -> Dict:
+def get_weather_vil( lat : float , lon : float , day : int = 0 ) -> Dict:
     '''
-    Get weather easier
+    Get vilage fcst weather
 
     Param:
         day : Get the weather for this number of days
@@ -210,15 +259,15 @@ def get_weather_auto( lat : float , lon : float , day : int = 0 ) -> Dict:
     # Think about it on your own
     # I don't want to comment >:(
     corrent_date = date_int/10000
+
+    try: 
+        result = fetch_weather_manual_Vil( xgrid, ygrid , corrent_date, corrent_time )
+
+    except HTTPError as e:
+        pass
+    except APIResponseError as e:
+        pass
     
-    result = fetch_weather_manual_Vil( xgrid, ygrid , corrent_date, corrent_time )
+    
     return result
 
-def parse_weather_items(response):
-    items = response['response']['body']['items']['item']
-    result = {}
-    for item in items:
-        category = item['category']
-        val = item['fcstValue']
-        result[category] = val
-    return result
