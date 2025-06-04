@@ -4,10 +4,22 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
+import logging as log
 
 from .weather import apiLink
 
+def setup_log():
+    log.basicConfig(
+        level=log.INFO,
+        format='%(asctime)s - %(levelname)s - %(name)s - %(massage)s',
+        handlers=[
+            log.FileHandler('server.log'),
+            log.StreamHandler()
+        ]
+    )
+
 app = FastAPI()
+logger = log.getLogger(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
