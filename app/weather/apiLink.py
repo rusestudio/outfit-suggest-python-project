@@ -1,12 +1,15 @@
 import requests
 from requests.exceptions import HTTPError
 import logging as log
-import datetime
+from datetime import datetime, timedelta
 from typing import Dict
 import json
 
 from config import SERVICE_KEY
-from . import get_data
+if __name__ == "__main__":
+    import get_data
+else:
+    from . import get_data
 
 class APIResponseError(Exception):
     def __init__(self, code, message):
@@ -58,8 +61,16 @@ def handle_api_response_error(error:APIResponseError):
         case _:
             log.error(f"UNKNOWN_ERROR: {error}")
 
-    return error.code
-    
+def get_date_time(delta_time : int = 0):
+    dt = datetime.now() + timedelta(days=delta_time)
+    hour = dt.hour - (dt.hour - 2) % 3
+    days_delta = hour // 24
+    hour = (hour + 24) % 24
+    dt = dt + timedelta(days=days_delta)
+    base_time = dt.replace(hour=hour, minute=10, second=0, microsecond=0)
+    date = base_time.strftime("%Y%m%d")
+    time = base_time.strftime("%H%M")
+    return date, time
 
 def recive_weather_info( params : Dict, url:str, timeout: int = 1):
     """
@@ -135,14 +146,15 @@ def parse_weather_vil_items(response):
         result[category] = val
     return result
 
-def fetch_weather_manual_Mid( time : str , regid : str
+def fatch_weather_Mid( regid : str, date : str , time : str
                        , number_of_rows : int = 10, page_number : int = 1 ): 
     """
     Get Middle term weather data
 
     Args:
-        time (str): HHmm ( H: hour, m: minute)
         regid (str): location number
+        date (str): date
+        time (str): HHmm ( H: hour, m: minute)
         number_of_rows (int): rows of response result
         page_number (int): page :)
 
@@ -179,7 +191,7 @@ def fetch_weather_manual_Mid( time : str , regid : str
         log.error(f"UnexpectedError : {e}")
         raise
 
-def fetch_weather_manual_Vil( xpos : int, ypos : int, date : str, time : str 
+def fatch_weather_Vil( xpos : int, ypos : int, date : str, time : str 
                        , number_of_rows : int = 10, page_number : int = 1 ): 
     """
     Get vilage weather data
@@ -220,14 +232,14 @@ def fetch_weather_manual_Vil( xpos : int, ypos : int, date : str, time : str
     try:
         return recive_weather_info(params,url)
     except HTTPError as e:
-        return None
+        raise
     except APIResponseError as e:
         handle_api_response_error(e)
-        return None
+        raise
     except RecursionError as e:
-        return None
+        raise
 
-def get_weather_vil( lat : float , lon : float , day : int = 0 ) -> Dict:
+def get_weather_vil( lat : float , lon : float , delt_day : int = 0 ) -> Dict:
     '''
     Get vilage fcst weather
 
@@ -238,36 +250,67 @@ def get_weather_vil( lat : float , lon : float , day : int = 0 ) -> Dict:
         Dictionary : 
             key
     '''
-    xgrid, ygrid = get_data.latlon_to_grid(lat,lon)
+    xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
     
-    date_int = int((datetime.datetime.now() + datetime.timedelta(days=day)).strftime("%Y%m%d%H%M"))
-
-    # It works!
-    # may be... 
-    # It does not work
-    #   when the years change every year.
-    # someone will be fix it :)
-    corrent_time = (date_int%10000)/100 # get hour and min
-    
-    # It makes 2,5,8,11,14,17,20,23
-    corrent_time = int(corrent_time - ((corrent_time-2)%3))%24
-    
-    # It makes 02,05,08,11,14,17,20,23
-    # API provide data at 10min
-    corrent_time = f'{corrent_time:02d}10'
-    
-    # Think about it on your own
-    # I don't want to comment >:(
-    corrent_date = date_int/10000
+    day, time = get_date_time(delt_day)
 
     try: 
-        result = fetch_weather_manual_Vil( xgrid, ygrid , corrent_date, corrent_time )
-
+        result = fatch_weather_Vil( xgrid, ygrid, day, time)
     except HTTPError as e:
-        pass
+        raise
     except APIResponseError as e:
-        pass
-    
-    
+        handle_api_response_error(e)
+        raise
+    except RecursionError as e:
+        raise   
     return result
 
+def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
+    '''
+    Get vilage fcst weather
+
+    Param:
+        day : Get the weather for this number of days
+            in the past 
+
+        Dictionary : 
+            key
+    '''
+    xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
+    
+    dt = datetime.now() + timedelta(days=day)
+    hour = dt.hour - (dt.hour - 2) % 3
+    hour = (hour + 24) % 24
+    dt = dt + timedelta(days=(hour//24))
+    base_time = dt.replace(hour=hour, minute=10, second=0, microsecond=0)
+    corrent_date = base_time.strftime("%Y%m%d")
+    corrent_time = base_time.strftime("%H%M")
+
+    try: 
+        result = fatch_weather_Mid( xgrid, ygrid , corrent_date, corrent_time )
+    except HTTPError as e:
+        raise
+    except APIResponseError as e:
+        handle_api_response_error(e)
+        raise
+    except RecursionError as e:
+        raise   
+    return result
+     
+def get_weather( lat : float , lon : float , date : int):
+    '''
+    get weather
+    '''
+    if date <= 3:
+        result = get_weather_vil(lat, lon, date)
+    elif date <= 7:
+        result = get_weather_Mid(lat, lon, date)
+    elif date <=10:
+        result = get_weather_Mid(lat, lon, date)
+    else:
+        pass
+
+    return result
+
+if __name__ == "__main__":
+    print(get_weather(37.564214, 127.001699,0))
