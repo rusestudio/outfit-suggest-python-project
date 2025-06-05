@@ -33,22 +33,6 @@ db_host = "localhost"
 user = "postgres"
 password = "RaiCial"
 
-# DB 접속 및 테이블 생성
-data = create_engine(
-    f'postgresql+psycopg2://{user}:{password}@{db_host}/UserData_db'
-)
-SQLModel.metadata.create_all(data)
-
-score = create_engine(
-    f'postgresql+psycopg2://{user}:{password}@{db_host}/UserScore_db'
-)
-SQLModel.metadata.create_all(score)
-
-favorite = create_engine(
-    f'postgresql+psycopg2://{user}:{password}@{db_host}/UserFavorite_db'
-)
-SQLModel.metadata.create_all(favorite)
-
 # data DB에서 모든 사용자 데이터를 JSON 형식으로 내보내는 함수
 def export_all_users_to_json():
     with Session(data) as session:
@@ -147,3 +131,20 @@ def get_user_favorite(login_id: str):
         statement = select(userFavorite).where(userFavorite.login_id == login_id)
         user_favorite = session.exec(statement).first()
         return user_favorite
+    
+if __name__ == "__main__":
+    # DB 접속 및 테이블 생성
+    data = create_engine(
+        f'postgresql+psycopg2://{user}:{password}@{db_host}/UserData_db'
+    )
+    SQLModel.metadata.create_all(data)
+
+    score = create_engine( 
+        f'postgresql+psycopg2://{user}:{password}@{db_host}/UserScore_db'
+    )
+    SQLModel.metadata.create_all(score)
+
+    favorite = create_engine(
+        f'postgresql+psycopg2://{user}:{password}@{db_host}/UserFavorite_db'
+    )
+    SQLModel.metadata.create_all(favorite)
