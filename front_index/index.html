@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>사용자 정보 받기</title>
+    </head>
+    <body>
+        <h2>외출하실 정보를 입력해주세요</h2>
+        <form id="information">
+            <label for="date">외출하실 날짜를 선택해주세요.</label><br>
+            <input type="date" id="when" name="when" required><br><br>
+            
+            <label for="space">활동 환경을 선택해주세요.</label><br>
+            <label><input type="radio" name="destination" value="outside">실외</label><br>
+            <label><input type="radio" name="destination" value="inside">실내</label><br><br>
+
+            <label for="destination">활동하실 장소를 입력해주세요.</label><br>
+            <input type="text" id="destination" name="destination" placeholder="목적지를 입력하세요"><br><br>
+
+            
+            <input type="submit" value="제출">
+        </form>
+
+        <!--결과표시영역-->
+        <div id="result"></div>
+    </body>
+</html>
+        <script>
+        document.getElementById('information').addEventListener('submit', async function(event) {
+            event.preventDefault();  // 폼 제출 방지
+            // 폼 제출 방지
+
+            // 입력값 가져오기
+            const data = {
+                when: document.getElementById('when').value,
+                destination: document.querySelector('input[name="destination"]:checked') ? document.querySelector('input[name="destination"]:checked').value : null,
+                place: document.getElementById('destination').value
+            }
+           
+            // 입력값 확인
+            if (!data.when || !data.destination) {
+                alert('날짜와 활동 환경을 선택해주세요.');
+                return;
+            }
+
+            try { 
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                const resultDiv = document.getElementById('result');
+                resultDiv.textContent = "Server Response: " + JSON.stringify(result);
+            } catch (error) {
+                alert("Error:" + error);
+
+            }
+
+        });
+        </script>
+    </body>
