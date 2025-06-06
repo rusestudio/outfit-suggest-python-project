@@ -218,7 +218,7 @@
 
         <div id="alert" class="alert"></div>
 
-        <form id="signupForm" method="POST" action="/submit">
+        <form id="signupForm" method="POST" action="/signup">
             <!-- Account Information -->
             <div class="form-group">
                 <label for="userId">User ID *</label>
@@ -296,7 +296,7 @@
         </form>
 
         <div class="login-link">
-            Already have an account? <a href="login.html">Login here</a>
+            Already have an account? <a href="/login">Login here</a>
         </div>
     </div>
 
@@ -333,7 +333,7 @@
                 }
 
                 // Send to FastAPI
-                const response = await fetch("/submit", {
+                const response = await fetch("/signup", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
