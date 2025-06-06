@@ -219,7 +219,7 @@
 
         <div id="alert" class="alert"></div>
 
-        <form id="loginForm">
+        <form id="loginForm"  method="POST" action="/login">
             <div class="form-group">
                 <label for="userId">User ID</label>
                 <input type="text" id="userId" name="userId" required>
@@ -238,7 +238,7 @@
         </form>
 
         <div class="signup-link">
-            Don't have an account? <a href="signup.html">Sign up here</a>
+            Don't have an account? <a href="/">Sign up here</a>
         </div>
     </div>
 
@@ -288,7 +288,7 @@
                     
                     // Redirect to dashboard or main page after successful login
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html'; // Change this to your main page
+                        window.location.href = '/dashboard'; // Change this to your main page
                     }, 1500);
                     
                 } else {
@@ -336,28 +336,28 @@
         });
 
         // Check if user is already logged in
-        window.addEventListener('load', function() {
-            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-            if (token) {
+        //window.addEventListener('load', function() {
+            //const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            //if (token) {
                 // Verify token with server
-                fetch(`${API_BASE_URL}/verify-token`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        window.location.href = 'dashboard.html';
-                    }
-                })
-                .catch(error => {
+               // fetch(`${API_BASE_URL}/verify-token`, {
+                   // method: 'GET',
+                   // headers: {
+                    //    'Authorization': `Bearer ${token}`
+                   // }
+               // })
+               // .then(response => {
+                  //  if (response.ok) {
+                 //       window.location.href = 'dashboard.html';
+                 //   }
+               // })
+              //  .catch(error => {
                     // Token invalid, remove it
-                    localStorage.removeItem('access_token');
-                    sessionStorage.removeItem('access_token');
-                });
-            }
-        });
+                 //   localStorage.removeItem('access_token');
+                //    sessionStorage.removeItem('access_token');
+              //  });
+          //  }
+      //  });
     </script>
 </body>
 </html>
