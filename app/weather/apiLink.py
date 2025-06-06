@@ -96,14 +96,16 @@ def logging_api_response_error(error:APIResponseError):
             log.error(f"UNKNOWN_ERROR: {error}")
 
 def get_date_time(delta_time : int = 0):
+
     dt = datetime.now() + timedelta(days=delta_time)
     hour = dt.hour - (dt.hour - 2) % 3
     days_delta = hour // 24
     hour = (hour + 24) % 24
     dt = dt + timedelta(days=days_delta)
-    base_time = dt.replace(hour=hour, minute=10, second=0, microsecond=0)
+    base_time = dt.replace(hour=hour, minute=0, second=0, microsecond=0)
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
+    log.warning(f"date : {date}, time : {time}")
     return date, time
 
 def recive_weather_info( params : Dict, url:str, timeout: int = 1):
@@ -125,7 +127,7 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
     """
     print(params)
     try:
-        result = requests.get("http://apis.data.go.kr/1360000/"+url,params, timeout=1)
+        result = requests.get("http://apis.data.go.kr/1360000/"+url,params, timeout=10)
         result.raise_for_status()
         result = result.json()
 
@@ -176,9 +178,17 @@ def parse_weather_vil_items(response):
     items = response['response']['body']['items']['item']
     result = {}
     for item in items:
+        date = item['fcstDate']
+        time = item['fcstTime']
         category = item['category']
         val = item['fcstValue']
-        result[category] = val
+
+        if date not in result:
+            result[date] = {}
+        if time not in result[date]:
+            result[date][time] = {}
+
+        result[date][time][category] = val
     return result
 
 def fetch_weather_Mid( regid : str, date : str , time : str
@@ -227,7 +237,7 @@ def fetch_weather_Mid( regid : str, date : str , time : str
         raise
 
 def fetch_weather_Vil( xpos : int, ypos : int, date : str, time : str 
-                       , number_of_rows : int = 10, page_number : int = 1 ): 
+                       , number_of_rows : int = 7, page_number : int = 1 ): 
     """
     Get vilage weather data
 
@@ -355,6 +365,5 @@ if __name__ == "__main__":
     print(f"lon : {lon}")
     print(f"================================")
     xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
-    result = fetch_weather_Vil(xpos,ypos,"20250606","1110", 1000,0)
-    result = parse_weather_vil_items(result)
-    print(f"result : {result}")
+    result = get_weather(lat, lon, 0)
+    print(result)
