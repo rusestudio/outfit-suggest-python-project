@@ -328,6 +328,7 @@ def get_weather( lat : float , lon : float , date : int):
         result = parse_weather_vil_items(result)
     elif date <= 7:
         result = get_weather_Mid(lat, lon, date)
+        result = parse_weather_Mid_items(result)
     elif date <=10:
         result = get_weather_Mid(lat, lon, date)
     else:
