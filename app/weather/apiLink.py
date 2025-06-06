@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Dict
 import json
 
-from config import SERVICE_KEY
+from config import SERVICE_KEY, VWORLD_KEY
 if __name__ == "__main__":
     import get_data
 else:
@@ -17,7 +17,30 @@ class APIResponseError(Exception):
         self.code = code
         self.message = message
 
-def handle_api_response_error(error:APIResponseError):
+def fetch_address_from_latlon( lat : float , lon : float ):
+    apiurl = "https://api.vworld.kr/req/address?"	
+    params = {	
+        "service": "address",	
+        "request": "getaddress",	
+        "crs": "epsg:4326",	
+        "point": f"{lon},{lat}",	
+        "format": "json",	
+        "errorFormat" : "json",
+        "type": "ROAD",	
+        "key": VWORLD_KEY	
+    }	
+    response = requests.get(apiurl, params=params)	
+    if response.status_code != 200:
+        print("wow")
+    return response
+
+def get_address_from_latlon( lat: float , lon : float ):
+    try:
+        return fetch_address_from_latlon(lat,lon).json()
+    except Exception as e:
+        log.critical(f"FUCK : {e}")
+
+def logging_api_response_error(error:APIResponseError):
     '''
     function for APIResponseError logging
 
@@ -234,7 +257,7 @@ def fatch_weather_Vil( xpos : int, ypos : int, date : str, time : str
     except HTTPError as e:
         raise
     except APIResponseError as e:
-        handle_api_response_error(e)
+        logging_api_response_error(e)
         raise
     except RecursionError as e:
         raise
@@ -259,7 +282,6 @@ def get_weather_vil( lat : float , lon : float , delt_day : int = 0 ) -> Dict:
     except HTTPError as e:
         raise
     except APIResponseError as e:
-        handle_api_response_error(e)
         raise
     except RecursionError as e:
         raise   
@@ -291,7 +313,7 @@ def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
     except HTTPError as e:
         raise
     except APIResponseError as e:
-        handle_api_response_error(e)
+        logging_api_response_error(e)
         raise
     except RecursionError as e:
         raise   
@@ -303,6 +325,7 @@ def get_weather( lat : float , lon : float , date : int):
     '''
     if date <= 3:
         result = get_weather_vil(lat, lon, date)
+        result = parse_weather_vil_items(result)
     elif date <= 7:
         result = get_weather_Mid(lat, lon, date)
     elif date <=10:
@@ -313,4 +336,9 @@ def get_weather( lat : float , lon : float , date : int):
     return result
 
 if __name__ == "__main__":
-    print(get_weather(37.564214, 127.001699,0))
+    lat, lon= 37.564214, 127.001699
+    print(f"lat : {lat}")
+    print(f"lon : {lon}")
+    print(f"================================")
+    print(f"weather : {get_weather(lat,lon,0)}")
+    print(get_address_from_latlon(lat,lon))
