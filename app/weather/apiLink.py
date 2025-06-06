@@ -12,8 +12,9 @@ else:
     from . import get_data
 
 class APIResponseError(Exception):
-    def __init__(self, code, message):
-        super().__init__(f"API Error Code {code}: {message}")
+    def __init__(self, name, code, message):
+        super().__init__(f"API({name}) Error Code {code}: {message}")
+        self.name = name
         self.code = code
         self.message = message
 
@@ -32,11 +33,21 @@ def fetch_address_from_latlon( lat : float , lon : float ):
     response = requests.get(apiurl, params=params)	
     if response.status_code != 200:
         print("wow")
-    return response
+    return response.json()
+
+def parse_address_from_latlon(result:json):
+    status = result["status"]
+    if status != "OK": 
+        error = result["error"]
+        if status == "NOT_FOUND":
+            APIResponseError("VWorld", error["code"], "Can not find Data")
+        else:
+            APIResponseError("VWorld", error["code"], error["message"])
+            
 
 def get_address_from_latlon( lat: float , lon : float ):
     try:
-        return fetch_address_from_latlon(lat,lon).json()
+        return fetch_address_from_latlon(lat,lon)
     except Exception as e:
         log.critical(f"FUCK : {e}")
 
@@ -112,6 +123,7 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
         APIResponseError: If API response data is not vaild value
         Exception: If an unknown error occurs
     """
+    print(params)
     try:
         result = requests.get("http://apis.data.go.kr/1360000/"+url,params, timeout=1)
         result.raise_for_status()
@@ -122,7 +134,7 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
         
         if result_code != "00":
             result_msg = head.get("resultMsg") 
-            raise APIResponseError(result_code, result_msg)
+            raise APIResponseError("KMA",result_code, result_msg)
     except HTTPError as e:
         log.error(f"HTTPError : {e}")
         raise
@@ -169,7 +181,7 @@ def parse_weather_vil_items(response):
         result[category] = val
     return result
 
-def fatch_weather_Mid( regid : str, date : str , time : str
+def fetch_weather_Mid( regid : str, date : str , time : str
                        , number_of_rows : int = 10, page_number : int = 1 ): 
     """
     Get Middle term weather data
@@ -214,7 +226,7 @@ def fatch_weather_Mid( regid : str, date : str , time : str
         log.error(f"UnexpectedError : {e}")
         raise
 
-def fatch_weather_Vil( xpos : int, ypos : int, date : str, time : str 
+def fetch_weather_Vil( xpos : int, ypos : int, date : str, time : str 
                        , number_of_rows : int = 10, page_number : int = 1 ): 
     """
     Get vilage weather data
@@ -237,10 +249,8 @@ def fatch_weather_Vil( xpos : int, ypos : int, date : str, time : str
     """ 
     url = "VilageFcstInfoService_2.0/getVilageFcst"
  
-    '''
-    Even if you change the variable,
-        DO NOT CHANGE THE FORMAT BELOW
-    '''
+    # Even if you change the variable,
+    #    DO NOT CHANGE THE FORMAT BELOW
     params = {
         'serviceKey' : SERVICE_KEY,
         'numOfRows' : number_of_rows,
@@ -278,7 +288,7 @@ def get_weather_vil( lat : float , lon : float , delt_day : int = 0 ) -> Dict:
     day, time = get_date_time(delt_day)
 
     try: 
-        result = fatch_weather_Vil( xgrid, ygrid, day, time)
+        result = fetch_weather_Vil( xgrid, ygrid, day, time)
     except HTTPError as e:
         raise
     except APIResponseError as e:
@@ -309,7 +319,7 @@ def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
     corrent_time = base_time.strftime("%H%M")
 
     try: 
-        result = fatch_weather_Mid( xgrid, ygrid , corrent_date, corrent_time )
+        result = fetch_weather_Mid( xgrid, ygrid , corrent_date, corrent_time )
     except HTTPError as e:
         raise
     except APIResponseError as e:
@@ -323,6 +333,9 @@ def get_weather( lat : float , lon : float , date : int):
     '''
     get weather
     '''
+    if SERVICE_KEY == None:
+        raise FileNotFoundError
+
     if date <= 3:
         result = get_weather_vil(lat, lon, date)
         result = parse_weather_vil_items(result)
@@ -341,5 +354,7 @@ if __name__ == "__main__":
     print(f"lat : {lat}")
     print(f"lon : {lon}")
     print(f"================================")
-    print(f"weather : {get_weather(lat,lon,0)}")
-    print(get_address_from_latlon(lat,lon))
+    xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
+    result = fetch_weather_Vil(xpos,ypos,"20250606","1110", 1000,0)
+    result = parse_weather_vil_items(result)
+    print(f"result : {result}")
