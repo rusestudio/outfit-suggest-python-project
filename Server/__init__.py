@@ -148,3 +148,9 @@ if __name__ == "__main__":
         f'postgresql+psycopg2://{user}:{password}@{db_host}/UserFavorite_db'
     )
     SQLModel.metadata.create_all(favorite)
+
+# DB 오류 출력 코드작성 필요
+# DB 옷 데이터 결과물용 DB필요 (이미지, 글 2종 또는 이미지 변환 후 1종 보관)
+# DB와 api 로컬에서 연결 실험 후 원격 연결시도
+# DB 정렬 함수 추가
+# DB 평균값 계산 추가
