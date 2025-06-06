@@ -17,6 +17,7 @@ class loginData(BaseModel):
     age: int
     height: float
     weight: float
+    body_temp: str
 
 
 @app.get("/")

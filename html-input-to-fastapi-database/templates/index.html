@@ -30,6 +30,13 @@
     <label for="weight">Body Weight (kg):</label><br>
     <input type="number" id="weight" name="weight" step="0.1" required><br><br>
 
+    <label for="body_temp">Temperature sensitiviy:</label><br>
+     <select id="bt" name="bt">
+        <option value="normal">normal</option>
+        <option value="cold">I easily feel cold</option>
+        <option value="hot">I easily feel hot</option>
+     </select><br><br>
+
     <input type="submit" value="Submit">
 </form>
 
@@ -47,6 +54,7 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         age: parseInt(document.getElementById("age").value),
         height: parseFloat(document.getElementById("height").value),
         weight: parseFloat(document.getElementById("weight").value),
+        body_temp: document.getElementById("bt").value,
     };
 
     try {
