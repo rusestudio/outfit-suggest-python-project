@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
     clothes = create_engine(
 
-f'postgresql+psycopg2://{user}:{password}@{db_host}/UserClothes_db'
+      f'postgresql+psycopg2://{user}:{password}@{db_host}/UserClothes_db'
     )
     SQLModel.metadata.create_all(clothes)
 
