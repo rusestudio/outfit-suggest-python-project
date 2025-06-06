@@ -31,6 +31,23 @@ def main():
     result = get_result(prompt)
     print(result)
 
+    #save explaination
+    explanations = result.strip().split("**Image Prompt:**")[:3]
+    explain1 = explanations[0].strip()
+    explain2 = explanations[1].strip() if len(explanations) > 1 else ""
+    explain3 = explanations[2].strip() if len(explanations) > 2 else ""
+
+    explain_data = {
+        "explain1": explain1,
+        "explain2": explain2,
+        "explain3": explain3
+    }
+
+    fileexpname = f"../explaination.json"
+    with open(fileexpname, "w", encoding="utf-8") as f:
+        json.dump(explain_data, f, indent=4, ensure_ascii=False)
+    print("Explanations saved to:", fileexpname)
+
     # prompt_text
     imageprompts = image_prompt(result)
 
@@ -54,7 +71,7 @@ def main():
             image_data = response.json()["image"]
 
             # save image to database by 용한님님
-            filename = f"../generated_img_data/generated_image{uuid.uuid4()}.png"
+            filename = f"../database-fast-api-html/img/img{uuid.uuid4()}.png"
             with open(filename, "wb") as f:
                 f.write(base64.b64decode(image_data))
             print(f" {n} image saved")
