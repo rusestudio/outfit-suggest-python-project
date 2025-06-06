@@ -125,7 +125,6 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
         APIResponseError: If API response data is not vaild value
         Exception: If an unknown error occurs
     """
-    print(params)
     try:
         result = requests.get("http://apis.data.go.kr/1360000/"+url,params, timeout=10)
         result.raise_for_status()
@@ -216,6 +215,7 @@ def fetch_weather_Mid( regid : str, date : str , time : str
  
     # Even if you change the variable,
     #   DO NOT CHANGE THE FORMAT BELOW
+
     params = {
         'serviceKey' : SERVICE_KEY,
         'numOfRows' : number_of_rows,
@@ -295,10 +295,14 @@ def get_weather_vil( lat : float , lon : float , delt_day : int = 0 ) -> Dict:
     '''
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
     
-    day, time = get_date_time(delt_day)
+    # 이거 수정 필요
+    day, time = get_date_time()
+
+    many = 24 - int(datetime.now().strftime("%H"))
+    print(f"many : {many}")
 
     try: 
-        result = fetch_weather_Vil( xgrid, ygrid, day, time)
+        result = fetch_weather_Vil( xgrid, ygrid, day, time, number_of_rows=(14*many))
     except HTTPError as e:
         raise
     except APIResponseError as e:
@@ -365,5 +369,8 @@ if __name__ == "__main__":
     print(f"lon : {lon}")
     print(f"================================")
     xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
-    result = get_weather(lat, lon, 0)
+    result = get_weather_vil(lat, lon, 0)
+    result = parse_weather_vil_items(result)
+    with open("result.json", "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=4,ensure_ascii=False)
     print(result)
