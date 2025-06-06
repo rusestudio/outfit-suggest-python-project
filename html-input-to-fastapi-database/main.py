@@ -37,8 +37,22 @@ async def submit_form(data: SignUp):
     return {"message": "data received!", 
             "data": data}
 
-#/login
+#/login to get to login page from sign up
 @app.get("/login")
 def get_login(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
+
+#to login and check data from db
+@app.post("/login")
+async def post_login(data: loginData):
+    if data.user_id == "testuser" and data.password == "1234":
+        return {"message": "Login successful!", "access_token": "fake-jwt"}
+    else:
+        return {"detail": "Invalid credentials"}, 401
+
+
 #/dashboard
+@app.get("/dashboard")
+def get_login(request: Request):
+    return templates.TemplateResponse("dashboard.html", {"request": request})
