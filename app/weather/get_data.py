@@ -59,3 +59,8 @@ def combert_latlon_to_grid( lat, lon ) -> Tuple[int,int]:
             Index[1] : grid ypos
     '''
     return latlon_to_grid(lat,lon,re,sf,sn,ro,XO,YO,olon) 
+
+    
+
+if __name__ == "__main__":
+    print(combert_latlon_to_grid(37.564214, 127.001699))
