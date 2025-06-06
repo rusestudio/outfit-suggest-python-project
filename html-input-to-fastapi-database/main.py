@@ -56,7 +56,7 @@ async def post_login(data: loginData):
     else:
         return {"detail": "Invalid credentials"}, 401
 
-#/dashboard
+#/index main page 
 @app.get("/index")
 def get_login(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
