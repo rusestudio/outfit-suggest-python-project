@@ -9,24 +9,30 @@ class userData(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     login_id: str = Field(index=True, unique=True)
     password: str
-    gender: str
+    gender: int
     age: int
     height: float
     weight: float
+    bodyTemperature: float
+
+class userClothes(SqlModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    #의상 종류들 집어넣기 값은 int 또는 bool
 
 class userScore(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    login_id: str = Field(index=True, unique=True)
     score: int
+    note: str
 
 class userFavorite(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    login_id: str = Field(index=True, unique=True)
     favorite_1: str
     favorite_2: str
     favorite_3: str
     favorite_4: str
     favorite_5: str
+    favorite_6: str
+    favorite_7: str
 
 # DB 접속 정보
 db_host = "localhost"
@@ -143,6 +149,12 @@ if __name__ == "__main__":
         f'postgresql+psycopg2://{user}:{password}@{db_host}/UserScore_db'
     )
     SQLModel.metadata.create_all(score)
+
+    clothes = create_engine(
+
+      f'postgresql+psycopg2://{user}:{password}@{db_host}/UserClothes_db'
+    )
+    SQLModel.metadata.create_all(clothes)
 
     favorite = create_engine(
         f'postgresql+psycopg2://{user}:{password}@{db_host}/UserFavorite_db'
