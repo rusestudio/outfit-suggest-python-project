@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Depends
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import SQLModel, Session, create_engine,select
 from dummy_result_data import Result
 import base64
@@ -71,47 +71,37 @@ def get_login(request: Request):
 
 # 사용자 입력 처리
 @app.post("/submit")
-async def submit_form(data: FormData):
+async def submit_form(data: FormData, request: Request):
     # 여기에 DB 저장 로직 등 추가 가능
-    return {
-        "message": "데이터를 성공적으로 받았습니다!",
-        "data": data  #user data to send to db
-    }
+    print("User submitted:", data)  
+    return RedirectResponse(url="/result", status_code=303)
 
 #create db tables
-@app.get("/result")
-def get_result():
+@app.get("/result", response_class=HTMLResponse)
+def read_result(request: Request, session: Session = Depends(lambda: Session(engine))):
     SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
+    
+    with session:
         if not session.exec(select(Result)).first():
             session.add_all([
-                #dummy data to be implement  by 용한님
-               # Option 1: Fill all fields in dummy data
-                Result(explain1="abc", explain2="def", explain3="ghi", 
+                Result(explain1="abc", explain2="def", explain3="ghi",
                        img1="img/img1.png", img2="img/img2.png", img3="img/img3.png")
             ])
             session.commit()
 
-def get_session():
-    with Session(engine) as session:
-        yield session
+        results = session.exec(select(Result)).all()
+
+        # Convert images to base64
+        for result in results:
+            if result.img1:
+                result.img1 = image_to_base64(result.img1)
+            if result.img2:
+                result.img2 = image_to_base64(result.img2)
+            if result.img3:
+                result.img3 = image_to_base64(result.img3)
+
+    return templates.TemplateResponse("result.html", {"request": request, "results": results})
 
 def image_to_base64(path):
     with open(path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode("utf-8")
-
-#render html user page to show 가져온 데이터 to html
-@app.get("/result", response_class=HTMLResponse)
-def read_result(request: Request, session: Session = Depends(get_session)):
-    results = session.exec(select(Result)).all()
-
-      # Convert image paths to base64
-    for result in results:
-        if result.img1:
-            result.img1 = image_to_base64(result.img1)
-        if result.img2:
-            result.img2 = image_to_base64(result.img2)
-        if result.img3:
-            result.img3 = image_to_base64(result.img3)
-
-    return templates.TemplateResponse("result.html", {"request": request, "results":results })
