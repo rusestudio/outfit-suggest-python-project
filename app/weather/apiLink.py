@@ -236,8 +236,8 @@ def fetch_weather_Mid( regid : str, date : str , time : str
         log.error(f"UnexpectedError : {e}")
         raise
 
-def fetch_weather_Vil( xpos : int, ypos : int, date : str, time : str 
-                       , number_of_rows : int = 7, page_number : int = 1 ): 
+def fetch_weather_Vil( xpos : int , ypos : int , date : str , time : str 
+                       , number_of_rows : int = 12 , page_number : int = 1 ): 
     """
     Get vilage weather data
 
@@ -282,7 +282,8 @@ def fetch_weather_Vil( xpos : int, ypos : int, date : str, time : str
     except RecursionError as e:
         raise
 
-def get_weather_vil( lat : float , lon : float , delt_day : int = 0 ) -> Dict:
+def get_weather_vil( lat : float , lon : float , date : str , time : str ,
+                    page_number : int = 1) -> Dict:
     '''
     Get vilage fcst weather
 
@@ -294,15 +295,10 @@ def get_weather_vil( lat : float , lon : float , delt_day : int = 0 ) -> Dict:
             key
     '''
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
-    
-    # 이거 수정 필요
-    day, time = get_date_time()
-
-    many = 24 - int(datetime.now().strftime("%H"))
-    print(f"many : {many}")
 
     try: 
-        result = fetch_weather_Vil( xgrid, ygrid, day, time, number_of_rows=(14*many))
+        # This Fracking API is SUCK because it sand randomly 12 or 14 items.
+        result = fetch_weather_Vil( xgrid, ygrid, date, time, number_of_rows=(13*24),page_number=page_number )
     except HTTPError as e:
         raise
     except APIResponseError as e:
@@ -322,7 +318,6 @@ def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
         Dictionary : 
             key
     '''
-    xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
     
     dt = datetime.now() + timedelta(days=day)
     hour = dt.hour - (dt.hour - 2) % 3
@@ -369,8 +364,14 @@ if __name__ == "__main__":
     print(f"lon : {lon}")
     print(f"================================")
     xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
-    result = get_weather_vil(lat, lon, 0)
-    result = parse_weather_vil_items(result)
-    with open("result.json", "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=4,ensure_ascii=False)
-    print(result)
+    print(f"xpos : {xpos}")
+    print(f"ypos : {ypos}")
+    date , time = get_date_time(-2)
+    print(f"date : {date}")
+    print(f"time : {time}") 
+    results = {}
+    for i in range(1, 4):
+        result = get_weather_vil(lat, lon,date,"2300", i)
+        results[i] = parse_weather_vil_items(result)
+    with open("result1.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=4,ensure_ascii=False)
