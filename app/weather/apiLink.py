@@ -102,12 +102,33 @@ def get_date_time(delta_time : int = 0):
     days_delta = hour // 24
     hour = (hour + 24) % 24
     dt = dt + timedelta(days=days_delta)
-    base_time = dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+    base_time = dt.replace(hour=hour, minute=10, second=0, microsecond=0)
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
     log.warning(f"date : {date}, time : {time}")
     return date, time
 
+def get_lines_number_and_page_number( base_time : str , delt_date : int = 0):
+    """ 
+    calculate the number of rows and page number for the KMA API
+    Args:
+        base_time (str): base time in the format of HHmm
+        delt_time (int): delta time in minutes to adjust the base time
+    Returns:
+        Tuple[int, Tuple[int, int]]: number of rows and page start and end
+    """
+    base_time = int(base_time)
+    if base_time < 610:
+        number_of_rows = 24 - base_time // 100
+    elif base_time < 1510:
+        number_of_rows = 24 - base_time // 100 + 1
+    else : 
+        number_of_rows = 24 - base_time // 100 + 2
+    page_start = 1 + delt_date
+
+    page_end = page_start
+    return 
+    
 def recive_weather_info( params : Dict, url:str, timeout: int = 1):
     """
     recive weather data
@@ -298,7 +319,7 @@ def get_weather_vil( lat : float , lon : float , date : str , time : str ,
 
     try: 
         # This Fracking API is SUCK because it sand randomly 12 or 14 items.
-        result = fetch_weather_Vil( xgrid, ygrid, date, time, number_of_rows=(13*24),page_number=page_number )
+        result = fetch_weather_Vil( xgrid, ygrid, date, time, number_of_rows=290,page_number=page_number )
     except HTTPError as e:
         raise
     except APIResponseError as e:
@@ -338,15 +359,17 @@ def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
         raise   
     return result
      
-def get_weather( lat : float , lon : float , date : int):
+def get_weather( lat : float , lon : float , date : str):
     '''
     get weather
     '''
     if SERVICE_KEY == None:
         raise FileNotFoundError
-
+    
+    date, time = get_date_time()
+    
     if date <= 3:
-        result = get_weather_vil(lat, lon, date)
+        result = get_weather_vil(lat, lon, date,time)
         result = parse_weather_vil_items(result)
     elif date <= 7:
         result = get_weather_Mid(lat, lon, date)
