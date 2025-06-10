@@ -108,27 +108,9 @@ def get_date_time(delta_time : int = 0):
     log.warning(f"date : {date}, time : {time}")
     return date, time
 
-def get_lines_number_and_page_number( base_time : str , delt_date : int = 0):
-    """ 
-    calculate the number of rows and page number for the KMA API
-    Args:
-        base_time (str): base time in the format of HHmm
-        delt_time (int): delta time in minutes to adjust the base time
-    Returns:
-        Tuple[int, Tuple[int, int]]: number of rows and page start and end
-    """
-    base_time = int(base_time)
-    if base_time < 610:
-        number_of_rows = 24 - base_time // 100
-    elif base_time < 1510:
-        number_of_rows = 24 - base_time // 100 + 1
-    else : 
-        number_of_rows = 24 - base_time // 100 + 2
-    page_start = 1 + delt_date
+def get_data_by_date(json_data, target_date):
+    return json_data.get(target_date, {})
 
-    page_end = page_start
-    return 
-    
 def recive_weather_info( params : Dict, url:str, timeout: int = 1):
     """
     recive weather data
@@ -195,11 +177,15 @@ def parse_weather_Mid_items( response ) :
 
     return result
 
-def parse_weather_vil_items(response):
+def parse_weather_vil_items(response, t_date):
     items = response['response']['body']['items']['item']
     result = {}
     for item in items:
         date = item['fcstDate']
+        if date != t_date:
+            log.info(f"Skipping item with date {date}, expected {t_date}")
+            continue  # 원하는 날짜와 다르면 건너뜀
+
         time = item['fcstTime']
         category = item['category']
         val = item['fcstValue']
@@ -305,7 +291,7 @@ def fetch_weather_Vil( xpos : int , ypos : int , date : str , time : str
         raise
 
 def get_weather_vil( lat : float , lon : float , date : str , time : str ,
-                    page_number : int = 1) -> Dict:
+                    delt_day : int = 0) -> Dict:
     '''
     Get vilage fcst weather
 
@@ -314,13 +300,28 @@ def get_weather_vil( lat : float , lon : float , date : str , time : str ,
             in the past 
 
         Dictionary : 
-            key
+            key : 
     '''
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
-
+    hour = int(time[0:2])
+    page , more_page, line = get_data.get_efficient_params_vil(hour, delt_day)
+    print(f"xgrid : {xgrid}, ygrid : {ygrid}, date : {date}, time : {time}")
+    print(f"page : {page}, more_page : {more_page}, line : {line}")
     try: 
-        # This Fracking API is SUCK because it sand randomly 12 or 14 items.
-        result = fetch_weather_Vil( xgrid, ygrid, date, time, number_of_rows=290,page_number=page_number )
+        if more_page == 0: 
+            result = fetch_weather_Vil( xgrid, ygrid, date, time, number_of_rows=line,page_number=page)
+        else:
+            result = {"response": {"body": {"items": {"item": []}}}}
+            for i in range(page - more_page, page + 1):
+                log.info(f"Fetching page {i} of {page}")
+                result_page = fetch_weather_Vil(xgrid, ygrid, date, time, number_of_rows=line, page_number=i)
+                # Merge result_page into result
+                if "response" in result_page and "body" in result_page["response"] and "items" in result_page["response"]["body"]:
+                    items = result_page["response"]["body"]["items"].get("item", [])
+                    if not isinstance(items, list):
+                        items = [items]
+                    result["response"]["body"]["items"]["item"].extend(items)
+
     except HTTPError as e:
         raise
     except APIResponseError as e:
@@ -360,38 +361,39 @@ def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
         raise   
     return result
      
-def get_weather( lat : float , lon : float , date : str):
+def get_weather( lat : float , lon : float , delt_day : int = 0):
     '''
     get weather
     '''
+
     if SERVICE_KEY == None:
         raise FileNotFoundError
     
-    date, time = get_date_time()
-    
-    if date <= 3:
-        result = get_weather_vil(lat, lon, date,time)
-        result = parse_weather_vil_items(result)
-    elif date <= 7:
+    if delt_day <= 3:
+        date, time = get_date_time()
+        result = get_weather_vil(lat, lon, date, time, delt_day)
+        result = parse_weather_vil_items(result,str(int(date)+delt_day))
+        return result
+    elif delt_day <= 7:
         result = get_weather_Mid(lat, lon, date)
-        result = parse_weather_Mid_items(result)
-    elif date <=10:
+        result = parse_weather_Mid_items(result, str(int(date)+delt_day))
+    elif delt_day <=10:
         result = get_weather_Mid(lat, lon, date)
     else:
-        pass
-
-    return result
+        return result
 
 if __name__ == "__main__":
     lat, lon= 37.564214, 127.001699
+
     print(f"lat : {lat}")
     print(f"lon : {lon}")
     print(f"================================")
+
     xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
+
     print(f"xpos : {xpos}")
     print(f"ypos : {ypos}")
 
-    result = get_weather_vil(lat, lon, "20250608", "0500")
-    result = parse_weather_vil_items(result)
-    with open("result1.json", "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=4,ensure_ascii=False)
+    result = get_weather(lat, lon, 4)
+    with open("result.json", "w") as f:
+        json.dump(result, f, indent=4, ensure_ascii=False)
