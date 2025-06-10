@@ -24,37 +24,12 @@
     </style>
 </head>
 <body>
-    <h1>Outfit Recommended</h1>
-    {% if results %}
-        {% for Result in results %}
-            <table>
-                <tr>
-                    <th>{{ Result.explain1 }}</th>
-                    <th>{{ Result.explain2 }}</th>
-                    <th>{{ Result.explain3 }}</th>
-                </tr>
-                <tr>
-                    <td>
-                        {% if Result.img1 %}
-                            <img src="data:image/png;base64,{{ Result.img1 }}">
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if Result.img2 %}
-                            <img src="data:image/png;base64,{{ Result.img2 }}">
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if Result.img3 %}
-                            <img src="data:image/png;base64,{{ Result.img3 }}">
-                        {% endif %}
-                    </td>
-                </tr>
-            </table>
-            <br><br>
-        {% endfor %}
-    {% else %}
-        <p>No result.</p>
-    {% endif %}
+    <h1>Results</h1>
+    {% for item in suggestions %}
+        <div>
+            <img src="{{ item.image_base64 }}" alt="Image" width="300">
+            <p>{{ item.explanation }}</p>
+        </div>
+    {% endfor %}
 </body>
 </html>

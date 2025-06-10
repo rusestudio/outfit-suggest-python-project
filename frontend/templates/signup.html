@@ -317,13 +317,13 @@
                 // Collect form data
                 const formData = new FormData(form);
                 const data = {
-                    user_id: formData.get('userId'),
+                    login_id: formData.get('userId'),
                     password: formData.get('password'),
                     sex: formData.get('sex'),
                     age: parseInt(formData.get('age')),
                     height: parseFloat(formData.get('height')),
                     weight: parseFloat(formData.get('weight')),
-                    body_temp: parseInt(formData.get('bodyCondition')),
+                    bodyTemperature: parseInt(formData.get('bodyCondition')),
                     clothes: formData.getAll('clothes')
                 };
 

@@ -6,8 +6,9 @@ import uuid
 import google.generativeai as genai
 import requests
 
-from data_to_be_prompt import user_data,weather_data, clothes_data,user_preference_dday,user_preference_fday
+from data_to_be_prompt import weather_data, clothes_data
 from prompt import build_prompt, image_prompt
+from database import userData
 
 # gemini text api define
 genai.configure(api_key="AIzaSyC8YOsoIj5YuWex1muFSwXCGwcDOaAUUAY")
@@ -23,61 +24,60 @@ def get_result(prompt: str):
     response = model.generate_content(prompt)
     return response.text
 
-def main():
-    # call def build prompt
-    prompt = build_prompt(user_data,weather_data, clothes_data,user_preference_dday,user_preference_fday)
+#save explaination
+def save_explaination(result):
+       parts = result.strip().split("**Image Prompt:**")[:3]
+       return [part.strip() for part in parts]
 
-    # call gemini
-    result = get_result(prompt)
-    print(result)
-
-    #save explaination
-    explanations = result.strip().split("**Image Prompt:**")[:3]
-    explain1 = explanations[0].strip()
-    explain2 = explanations[1].strip() if len(explanations) > 1 else ""
-    explain3 = explanations[2].strip() if len(explanations) > 2 else ""
-
-    explain_data = {
-        "explain1": explain1,
-        "explain2": explain2,
-        "explain3": explain3
-    }
-
-    fileexpname = f"../explaination.json"
-    with open(fileexpname, "w", encoding="utf-8") as f:
-        json.dump(explain_data, f, indent=4, ensure_ascii=False)
-    print("Explanations saved to:", fileexpname)
-
-    # prompt_text
-    imageprompts = image_prompt(result)
-
-    # header
+def generate_images(image_prompts: list):
+    images = []
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Accept": "application/json",
     }
 
-    for n, prompt_text in enumerate(imageprompts, start=1):
+    for prompt_text in image_prompts:
         files = {
             "prompt": (None, prompt_text),
             "output_format": (None, "png"),
         }
-        # send api
-        # make respone in list append then request post
         response = requests.post(api_url, files=files, headers=headers)
-
-        # exception handle
         if response.status_code == 200:
-            image_data = response.json()["image"]
-
-            # save image to database by 용한님님
-            filename = f"../database-fast-api-html/img/img{uuid.uuid4()}.png"
-            with open(filename, "wb") as f:
-                f.write(base64.b64decode(image_data))
-            print(f" {n} image saved")
+            image_base64 = response.json()["image"]
+            images.append(f"data:image/png;base64,{image_base64}")
         else:
-            print(f" Error:image {n}, {response.status_code} - {response.text}")
+            images.append("image not available")  # Placeholder for failed image
+
+    return images
+
+
+def main():
+    # call def build prompt
+    prompt = build_prompt(userData,weather_data, clothes_data, user_input)
+
+    # call gemini
+    result = get_result(prompt)
+
+    #save explaination
+    explanations = save_explaination(result)
+
+    # prompt_text
+    imageprompts = image_prompt(result)
+
+    image_base64_list = generate_images(imageprompts)
+
+    suggestions = []
+    for i in range(3):
+        suggestions.append({
+            "image_base64": image_base64_list[i] if i < len(image_base64_list) else "",
+            "explanation": explanations[i] if i < len(explanations) else ""
+        })
+
+    return suggestions
+
 
 # Only run this if the file is executed directly
 if __name__ == "__main__":
-    main()
+    suggest = main()
+    for s in suggest:
+        print(json.dumps(s, indent=2))
