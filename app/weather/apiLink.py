@@ -162,6 +162,7 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
         raise
     except APIResponseError as e:
         log.error(f"APIResponseError : {e}")
+        print(params)
         raise
     except Exception as e:
         log.error(f"UnexpectedError : {e}")
@@ -389,12 +390,8 @@ if __name__ == "__main__":
     xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
     print(f"xpos : {xpos}")
     print(f"ypos : {ypos}")
-    date , time = get_date_time(-2)
-    print(f"date : {date}")
-    print(f"time : {time}") 
-    results = {}
-    for i in range(1, 4):
-        result = get_weather_vil(lat, lon,date,"2300", i)
-        results[i] = parse_weather_vil_items(result)
+
+    result = get_weather_vil(lat, lon, "20250608", "0500")
+    result = parse_weather_vil_items(result)
     with open("result1.json", "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=4,ensure_ascii=False)
+        json.dump(result, f, indent=4,ensure_ascii=False)
