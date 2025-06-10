@@ -64,24 +64,50 @@ def combert_latlon_to_grid( lat, lon ) -> Tuple[int,int]:
     '''
     return latlon_to_grid(lat,lon,re,sf,sn,ro,XO,YO,olon) 
 
+# not implemented
 def get_efficient_vilFcst_params(hour, day):
-    full_index = (24 - (hour+1)%24) * 12 + 290 * day
-
+    today_data_num = (24 - (hour + 1) % 24) * 12
+    full_index = today_data_num + 290 * day
     if hour > 6:
         full_index += 2
     elif hour > 15:
-        full_index += 1
-    
+        full_index += 1 
+
+    # If the full index is less than or equal to 290, return the first page and the full index
     if full_index <= 290:
         return 1, full_index
-    
-    
+    page = np.ceil(full_index / 290)
+    front_padding = (page-1) * 290 - full_index
+    last_padding = page * 290
+    padding = last_padding - full_index
+
+    if padding == 0:
+        return (int(page), 0), 290
+    else:
+        return (int(page), 1), 290 
+     
+def get_efficient_params_vil(hour, day):
+    today_data_num = (24 - (hour + 1) % 24) * 12
+    full_index = today_data_num + 290 * day
+    if hour < 6:
+        full_index += 2
+    elif hour < 15:
+        full_index += 1 
+
+    # If the full index is less than or equal to 290, return the first page and the full index
+    if full_index <= 290:
+        return 1, 0, full_index
+    page = np.ceil(full_index / 290)
+    padding = full_index % 290
+
+    if padding == 0:
+        return int(page) , 0 , 290
+    else:
+        return int(page) , 1 , 290 
 
 if __name__ == "__main__":
     print(combert_latlon_to_grid(37.564214, 127.001699))
-    # 결과 저장용 리스트
-
     for hour in range(24):
         for day in range(4):
-            result = get_efficient_vilFcst_params(hour, day)
+            result = get_efficient_params_vil(hour, day)
             print(f"Hour: {hour}, Day: {day}, Result: {result}")
