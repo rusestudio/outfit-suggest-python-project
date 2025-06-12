@@ -15,6 +15,8 @@ if __name__ == "__main__":
 else:
     from . import get_data
 
+logger = log.getLogger(__name__)
+
 class APIResponseError(Exception):
     def __init__(self, name, code, message):
         super().__init__(f"API({name}) Error Code {code}: {message}")
@@ -139,6 +141,8 @@ async def recive_weather_info( params : Dict, url:str, timeout: int = 100):
         APIResponseError: If API response data is not vaild value
         Exception: If an unknown error occurs
     """
+    print(params)
+    log.warning(params)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             result = await client.get("http://apis.data.go.kr/1360000/"+url,params=params, timeout=10)
@@ -232,11 +236,48 @@ def get_weather_TMX_TMN(result: dict,date:str,time:str):
             tmp_min = min(tmp,tmp_min)
             print(f"tmp: {tmp}\ntmp_max: {tmp_max}\ntmp_min: {tmp_min}")
         tmp_avg /= count
+        tmp_avg = round(tmp_avg,2)
     except Exception as e:
         log.error(f"error: {e}")
-        pass
+        raise
 
     return tmp_avg, tmp_min, tmp_max
+
+def get_weather_WSD(result: dict,date:str,time:str):
+    hour = (int(time[:2]) + 1)%24
+    wsd_avg = 0.0
+    count = 0
+    log.warning("get_weather")
+    try:
+        for time in range(hour,23):
+            count += 1
+            wsd = float(result[date][f"{time:02d}00"]["WSD"])
+            print(wsd,wsd_avg)
+            wsd_avg += wsd
+        wsd_avg /= count
+        wsd_avg = round(wsd_avg,2)
+    except Exception as e:
+        log.error(f"error: {e}")
+        raise
+    return wsd_avg
+
+def get_weather_POP(result: dict,date:str,time:str):
+    hour = (int(time[:2]) + 1)%24
+    pop_avg = 0.0
+    count = 0
+    log.warning("get_weather")
+    try:
+        for time in range(hour,23):
+            count += 1
+            pop = float(result[date][f"{time:02d}00"]["POP"])
+            print(pop,pop_avg)
+            pop_avg += pop
+        pop_avg /= count
+        pop_avg = round(pop_avg,2)
+    except Exception as e:
+        log.error(f"error: {e}")
+        raise
+    return pop_avg
 
 def fetch_weather_Mid( regid : str, date : str , time : str
                        , number_of_rows : int = 10, page_number : int = 1 ): 
@@ -272,6 +313,7 @@ def fetch_weather_Mid( regid : str, date : str , time : str
         'regid' : regid,
         'tmFc' : time
     }
+    print(params)
     try:
         return recive_weather_info(params,url)
     except httpx.HTTPError as e:
@@ -351,6 +393,7 @@ async def get_weather_vil( lat : float , lon : float , date : str , time : str ,
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
     hour = int(time[0:2])
     page , more_page, line, front_pad, back_pad = get_data.get_efficient_params_vil(hour, delt_day)
+    log.info(f"INFO: weather input: date:{date}, time:{time}")
     try: 
         if more_page == 0: 
             result = await fetch_weather_vil( xgrid, ygrid, date, time, number_of_rows=line,page_number=page)
@@ -448,6 +491,7 @@ def main():
     print(f"================================")
 
     delt_day = 1
+    log.info("fuck you")
     result = asyncio.run(get_weather(lat,lon,delt_day))
     # result = await get_weather_vil(lat, lon, date, time, delt_day)
     date = str(int(date)+delt_day)
@@ -455,14 +499,28 @@ def main():
     with open("result.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
     avg, tmp_min, tmp_max = get_weather_TMX_TMN(result, date, time)
-
+    wsd_avg = get_weather_WSD(result, date, time)
+    pop = get_weather_POP(result, date, time)
     print(date,time)
-    print(avg,tmp_min,tmp_max)
+    print(avg,tmp_min,tmp_max,wsd_avg)
+    print(pop)
 
 def test():
-    for dt in range(24):
-        hour = (dt - (dt - 6) % 12 + 24) %24
-        print(hour)
+    check = [2,5,8,11,14,17,20,23]
+    with open("test.txt","w")as f:
+        for day in range(4):
+            for dt in range(24):
+                for min in range(60):
+                    date = day
+                    hour = (dt - (dt - 2) % 3 + 24) % 24
+                    if dt == hour and min < 10:
+                        hour -= 3
+                        if dt < 2:
+                            hour = hour % 24
+                            date -= 1
+                    f.write(f"call {day:02d}:{dt:02d}:{min:02d}\tget {date:02d}:{hour:02d}:10\n")
 
 if __name__ == "__main__":
-    main()
+    log.basicConfig(filename="example.log", filemode="w",level=log.INFO)
+    log.info("start __main__")
+    test()

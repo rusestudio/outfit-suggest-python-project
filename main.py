@@ -18,7 +18,7 @@ from .weather import apiLink
 def setup_log():
     log.basicConfig(
         level=log.INFO,
-        format='%(asctime)s - %(levelname)s - %(name)s - %(massage)s',
+        format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
         handlers=[
             log.FileHandler('server.log'),
             log.StreamHandler()
@@ -102,7 +102,7 @@ async def submit_form(submit_data: SubmitRequest, request: Request, location: Lo
         lon = location.longitude
         print(f"Getting weather for coordinates: {lat},{lon}")
         
-        
+
         # Build prompt with user data, weather data, and clothes data
         prompt = build_prompt(userData, weather_data, clothes_data, user_input)
         
