@@ -109,7 +109,10 @@ def get_corrent_date_hour_vil() -> tuple[str,str]:
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 2) % 3 + 24) % 24
     if (hour == dt.hour and dt.minute < 10):
-        hour -= 1
+        hour -= 3
+    if dt.hour < 2:
+        hour = hour % 24
+        dt = dt - timedelta(days=1)
     base_time = dt.replace(day=dt.day + (-1 if dt.hour < 2 else 0),hour=hour, minute=10)
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
@@ -118,6 +121,7 @@ def get_corrent_date_hour_vil() -> tuple[str,str]:
 def get_corrent_date_hour_mid() -> str:
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 6) % 12 + 24) % 24
+    if 
     base_time = dt.replace(day=dt.day + (-1 if dt.hour < 6 else 0), hour = hour, minute=0)
     return base_time.strftime("%Y%m%d%H%M") 
 
@@ -516,19 +520,7 @@ def main():
     print(pop)
 
 def test():
-    check = [2,5,8,11,14,17,20,23]
-    with open("test.txt","w")as f:
-        for day in range(4):
-            for dt in range(24):
-                for min in range(60):
-                    date = day
-                    hour = (dt - (dt - 2) % 3 + 24) % 24
-                    if dt == hour and min < 10:
-                        hour -= 3
-                    if dt <= 2:
-                        hour = hour % 24
-                        date -= 1
-                    f.write(f"call {day:02d}:{dt:02d}:{min:02d}\tget {date:02d}:{hour:02d}:10\n")
+    print(get_corrent_date_hour_vil())
 
 if __name__ == "__main__":
     log.basicConfig(filename="example.log", filemode="w",level=log.INFO)
