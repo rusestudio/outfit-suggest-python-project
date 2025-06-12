@@ -259,39 +259,7 @@
                     <input type="number" id="weight" name="weight" min="20" max="300" required>
                 </div>
             </div>
-
-            <div class="form-group">
-                <label for="bodyCondition">Body Condition *</label>
-                <select id="bodyCondition" name="bodyCondition" required>
-                    <option value="">Select Body Condition</option>
-                    <option value="1">I get cold easily</option>
-                    <option value="2">I get hot easily</option>
-                    <option value="3">Normal</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Clothes Preferences *</label>
-                <div class="checkbox-group">
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="tshirt" name="clothes" value="t-shirt">
-                        <label for="tshirt">T-Shirt</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="jean" name="clothes" value="jean">
-                        <label for="jean">Jean</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="hoodie" name="clothes" value="hoodie">
-                        <label for="hoodie">Hoodie</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="pants" name="clothes" value="pants">
-                        <label for="pants">Pants</label>
-                    </div>
-                </div>
-            </div>
-
+        
             <button type="submit" class="signup-btn">Create Account</button>
         </form>
 
@@ -319,18 +287,18 @@
                 const data = {
                     login_id: formData.get('userId'),
                     password: formData.get('password'),
-                    sex: formData.get('sex'),
+                    gender: formData.get('sex'),
                     age: parseInt(formData.get('age')),
                     height: parseFloat(formData.get('height')),
                     weight: parseFloat(formData.get('weight')),
-                    bodyTemperature: parseInt(formData.get('bodyCondition')),
-                    clothes: formData.getAll('clothes')
+                    //bodyTemperature: parseInt(formData.get('bodyCondition')),
+                    //clothes: formData.getAll('clothes')
                 };
 
                 // Validate at least one clothing item is selected
-                if (data.clothes.length === 0) {
-                    throw new Error('Please select at least one clothing preference');
-                }
+                //if (data.clothes.length === 0) {
+                   // throw new Error('Please select at least one clothing preference');
+                //}
 
                 // Send to FastAPI
                 const response = await fetch("/signup", {

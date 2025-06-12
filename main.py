@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Form, HTTPException
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from database import userData, add_user, get_user_by_login_id
 from llm_model_suggest import main 
-from data_to_be_prompt import build_prompt, weather_data, clothes_data
+from data_to_be_prompt import weather_data, clothes_data
+from prompt import build_prompt
 
 import base64
 from typing import List
@@ -15,9 +16,9 @@ app = FastAPI()
 # Set up templates directory
 templates = Jinja2Templates(directory="templates")
 
-#dummy database set to be implement  by 용한님
-#DATABASE_URL ="postgresql://59.30.158.50:5432/"
-#engine = create_engine(DATABASE_URL, echo=True)
+class SubmitRequest(BaseModel):
+    when: str
+    destination: str
 
 
 @app.get("/")
@@ -56,13 +57,21 @@ def get_login(request: Request):
 
 # 사용자 입력 처리
 @app.post("/submit")                                   
-async def submit_form( when: str, destination: str ,request:Request):
-    user_input ={
-        "when":when,
-        "destination":destination,
+async def submit_form(submit_data: SubmitRequest, request: Request):
+    user_input = {
+        "when": submit_data.when,
+        "destination": submit_data.destination,
     }
-    prompt = build_prompt(userData,weather_data, clothes_data,user_input)
-    return templates.TemplateResponse("result.html", {"request": request, "prompt": prompt})
+    
+    try:
+        prompt = build_prompt(userData, weather_data, clothes_data, user_input)
+        return templates.TemplateResponse("result.html", {
+            "request": request, 
+            "prompt": prompt
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
 
 #create db tables
 #@app.get("/result", response_class=HTMLResponse)

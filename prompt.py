@@ -5,13 +5,10 @@ from database import userData
 def build_prompt(userData,weather_data, clothes_data, user_input):
         #you are age, sex, height, body weight. //to be change based on user login data
         prompt = f"""
-        your are a {userData['sex']} who is
+        your are a {userData['gender']} who is
         {userData['age']} years old,
         height  {userData['height']} cm,
-        weight {userData['weight']} kg and
-        have sensitive to temperature which if {userData['bodyTemperature']} is 0 
-        consider as normal, else if {userData['bodyTemperature']} is 1 you feel more cold than the current temperature, 
-        else if {userData['bodyTemperature']} is 2 you feel more hot than the current temperature.
+        weight {userData['weight']} kg
 
         
         Current weather conditions:
@@ -27,8 +24,6 @@ def build_prompt(userData,weather_data, clothes_data, user_input):
         and the following materials:
         {', '.join(clothes_data['materials'])}
 
-        and also, clothes that have in closet:
-        {', '.join(userData['clothes_info'])}
 
         Location to wear the outfit would be:
         either on the today {user_input['destination']},

@@ -13,7 +13,7 @@ class userData(SQLModel, table=True):
     age: int
     height: float
     weight: float
-    bodyTemperature: float
+    #bodyTemperature: int
 
 # 의상 데이터 모델 정의 | # Define the clothing data model
 class userClothes(SQLModel, table=True):
@@ -44,7 +44,7 @@ class resultImage(SQLModel, table=True):
     tag: str  # 이미지에 대한 태그 | # Tag for the image
 
 # DB 접속 정보 | # DB connection information
-db_host = "localhost"
+db_host = "59.30.158.50"
 user = "postgres"
 password = "RaiCial"
 
