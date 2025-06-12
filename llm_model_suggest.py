@@ -26,8 +26,24 @@ def get_result(prompt: str):
 
 #save explaination
 def save_explaination(result):
-       parts = result.strip().split("**Image Prompt:**")[:3]
-       return [part.strip() for part in parts]
+    # Split the result by image prompts (should separate each outfit block)
+    blocks = result.strip().split("**Image Prompt:**")
+
+    explanations = []
+    for block in blocks[:3]:  # Only first 3 outfits
+        cleaned = block.strip()
+
+        # Optional cleanup of markdown-style asterisks
+        cleaned = cleaned.replace("*", "").strip()
+
+        explanations.append(cleaned)
+
+    # Ensure we always return 3 entries
+    while len(explanations) < 3:
+        explanations.append("No outfit suggestion available.")
+
+    return explanations
+
 
 def generate_images(image_prompts: list):
     images = []
@@ -51,19 +67,15 @@ def generate_images(image_prompts: list):
     return images
 
 
-def main():
+def main(user, weather_data, clothes_data, user_input):
     # call def build prompt
-    prompt = build_prompt(userData,weather_data, clothes_data, user_input)
-
+    prompt = build_prompt(user, weather_data, clothes_data, user_input)
     # call gemini
     result = get_result(prompt)
-
-    #save explaination
+    #save explanation
     explanations = save_explaination(result)
-
     # prompt_text
     imageprompts = image_prompt(result)
-
     image_base64_list = generate_images(imageprompts)
 
     suggestions = []

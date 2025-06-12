@@ -13,35 +13,28 @@ from fastapi.staticfiles import StaticFiles
 import base64
 from typing import List
 
-from .weather import apiLink
+from weather import apiLink
 
 def setup_log():
     log.basicConfig(
         level=log.INFO,
-        format='%(asctime)s - %(levelname)s - %(name)s - %(massage)s',
+        format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
         handlers=[
             log.FileHandler('server.log'),
             log.StreamHandler()
         ]
     )
-
-
-app = FastAPI()
-
-# Set up templates directory
-templates = Jinja2Templates(directory="templates")
+setup_log()
 
 #weather
 logger = log.getLogger(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+app = FastAPI()
 
-class SubmitRequest(BaseModel):
-    when: str
-    destination: str
-
+# Set up templates directory
+templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
 def get_page(request: Request):
@@ -76,45 +69,79 @@ async def post_login(data: userData):
 def get_login(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+class SubmitData(BaseModel):
+    when: str
+    destination: str
+    environment: str
 
-logger = log.getLogger(__name__)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
-
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
-
-# 클라이언트에서 받을 위치 정보 모델
 class Location(BaseModel):
     latitude: float
     longitude: float
 
+class SubmitRequest(BaseModel):
+    submit_data: SubmitData
+    location: Location
+
+# get weather
+@app.post("/weather")
+async def get_weather(location: Location):
+    lat = location.latitude
+    lon = location.longitude
+    print(f"{lat},{lon}")
+    
+    return weather_data
+
 # Combined endpoint that handles form submission and gets weather data
 @app.post("/submit")
-async def submit_form(submit_data: SubmitRequest, request: Request, location: Location):
+async def submit_form( submit: SubmitRequest, request: Request):
     user_input = {
-        "when": submit_data.when,
-        "destination": submit_data.destination,
+        "when": submit.submit_data.when,
+        "destination": submit.submit_data.destination,
     }
     
     try:
         # Get weather data using location coordinates
-        lat = location.latitude
-        lon = location.longitude
+        lat = submit.location.latitude
+        lon = submit.location.longitude
         print(f"Getting weather for coordinates: {lat},{lon}")
+
+        weather_datad = {
+            "temperature": 19,  # Celsius
+            "wind": "5",  # or value in km/h
+            "rain": "no rain", #%
+            "humidity": 71,
+        }   
         
+        date, time = apiLink.get_corrent_date_hour_vil()
+        day = int(date[7:])
+        date_temp = int(user_input["when"][9:])
+        log.info(f"date_temp = {date_temp},{day}")
+        delt_date = date_temp - day
+        log.warning(f"sdaf{delt_date}")
+        weather_data2 = await apiLink.get_weather(lat,lon,delt_date)
+
+        log.info(weather_data2)
+        day = str(int(date) + delt_date)
+        time = "0000"
+
+        avg, _,_  = apiLink.get_weather_TMX_TMN(weather_data2,day,time)
+        weather_datad["temperature"] = avg
         
+        user = get_user_by_login_id(userData.login_id)
         # Build prompt with user data, weather data, and clothes data
-        prompt = build_prompt(userData, weather_data, clothes_data, user_input)
+        suggestions = main(user, weather_datad, clothes_data, user_input)
+
         
         return templates.TemplateResponse("result.html", {
             "request": request,
-            "prompt": prompt,
-            "weather_data": weather_data,  # Optional: pass weather data to template
+            "suggestions": suggestions,
+            "weather_data": weather_datad,  # Optional: pass weather data to template
             "user_input": user_input       # Optional: pass user input to template
         })
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        log.error(f"err: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
 
 #create db tables

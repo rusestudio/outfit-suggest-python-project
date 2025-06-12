@@ -6,7 +6,6 @@ weather_data = {
     "wind": "5",  # or value in km/h
     "rain": "no rain", #%
     "humidity": 71,
-    "air_pressure": 1008,
 }
 
 # clothes data

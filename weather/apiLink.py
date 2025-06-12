@@ -106,7 +106,9 @@ def logging_KMA_api_response_error(error:APIResponseError):
 def get_corrent_date_hour_vil() -> tuple[str,str]:
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 2) % 3 + 24) % 24
-    base_time = dt.replace(hour=hour, minute=10)
+    if (hour == dt.hour and dt.minute < 10):
+        hour -= 1
+    base_time = dt.replace(day=dt.day + (-1 if dt.hour < 2 else 0),hour=hour, minute=10)
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
     return date, time
@@ -120,7 +122,7 @@ def get_corrent_date_hour_mid() -> str:
 def get_data_by_date(json_data, target_date):
     return json_data.get(target_date, {})
 
-async def recive_weather_info( params : Dict, url:str, timeout: int = 10):
+async def recive_weather_info( params : Dict, url:str, timeout: int = 2000):
     """
     recive weather data
 
@@ -139,7 +141,7 @@ async def recive_weather_info( params : Dict, url:str, timeout: int = 10):
     """
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            result = await client.get("http://apis.data.go.kr/1360000/"+url,params=params, timeout=10)
+            result = await client.get("http://apis.data.go.kr/1360000/"+url,params=params, timeout=timeout)
             result.raise_for_status()
             result = result.json()
 
@@ -211,7 +213,32 @@ def parse_weather_vil_items(response, t_date):
             result[date][time] = {}
 
         result[date][time][category] = val
+        log.info(f"val: {val}")
+    log.info(result)
     return result
+
+def get_weather_TMX_TMN(result: dict,date:str,time:str):
+    hour = (int(time[:2]) + 1)%24
+    tmp_max = -999
+    tmp_min = 999
+    tmp_avg = 0
+    count = 0
+    print(hour)
+    try:
+        for time in range(hour,23):
+            count += 1
+            tmp = int(result[date][f"{time:02d}00"]["TMP"])
+            print(tmp)
+            tmp_avg += tmp
+            tmp_max = max(tmp,tmp_max)
+            tmp_min = min(tmp,tmp_min)
+            print(f"tmp: {tmp}\ntmp_max: {tmp_max}\ntmp_min: {tmp_min}")
+        tmp_avg /= count
+    except Exception as e:
+        log.error(f"error: {e}")
+        pass
+
+    return tmp_avg, tmp_min, tmp_max
 
 def fetch_weather_Mid( regid : str, date : str , time : str
                        , number_of_rows : int = 10, page_number : int = 1 ): 
@@ -309,6 +336,7 @@ async def fetch_weather_vil( xpos : int , ypos : int , date : str , time : str
         log.info(f"Params: {params.get('base_date')}, {params.get('base_time')}, {params.get('nx')}, {params.get('ny')}, {params.get('numOfRows')}, {params.get('pageNo')}")
         raise
     except Exception as e:
+        print("d")
         raise
 
 async def get_weather_vil( lat : float , lon : float , date : str , time : str ,
@@ -326,6 +354,7 @@ async def get_weather_vil( lat : float , lon : float , date : str , time : str ,
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
     hour = int(time[0:2])
     page , more_page, line, front_pad, back_pad = get_data.get_efficient_params_vil(hour, delt_day)
+    log.info(line)
     try: 
         if more_page == 0: 
             result = await fetch_weather_vil( xgrid, ygrid, date, time, number_of_rows=line,page_number=page)
@@ -381,11 +410,14 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
     '''
     get weather
     '''
+    result = {}
     if delt_day <= 3:
         date, time = get_corrent_date_hour_vil()
+        log.warning(f"{date}{time}")
         try:
             result = await get_weather_vil(lat, lon, date, time, delt_day)
             result = parse_weather_vil_items(result,str(int(date)+delt_day))
+            
         except httpx.ReadTimeout as e:
             raise
         except httpx.TimeoutException as e:
@@ -412,20 +444,29 @@ def main():
     print(f"================================")
 
     xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
+    date, time = get_corrent_date_hour_vil()
 
     print(f"xpos : {xpos}")
     print(f"ypos : {ypos}")
-    date, time = get_corrent_date_hour_vil()
+
+    print(f"================================")
+
     delt_day = 1
-    result = asyncio.run(fetch_weather_vil( xpos, ypos, date, time, number_of_rows=1000,page_number=1))
+    result = asyncio.run(get_weather(lat,lon,delt_day))
+    # result = await get_weather_vil(lat, lon, date, time, delt_day)
+    date = str(int(date)+delt_day)
+    
     with open("result.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-    result1 = parse_weather_vil_items(result,str(int(date)+delt_day))
-    print(result1)
+    avg, tmp_min, tmp_max = get_weather_TMX_TMN(result, date, time)
+
+    print(date,time)
+    print(avg,tmp_min,tmp_max)
 
 def test():
     for dt in range(24):
         hour = (dt - (dt - 6) % 12 + 24) %24
         print(hour)
+
 if __name__ == "__main__":
-    print(get_address_from_latlon(37.74913611,128.8784972))
+    main()
