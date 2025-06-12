@@ -225,16 +225,13 @@ def get_weather_TMX_TMN(result: dict,date:str,time:str):
     tmp_min = 999
     tmp_avg = 0
     count = 0
-    print(hour)
     try:
         for time in range(hour,23):
             count += 1
             tmp = int(result[date][f"{time:02d}00"]["TMP"])
-            print(tmp)
             tmp_avg += tmp
             tmp_max = max(tmp,tmp_max)
             tmp_min = min(tmp,tmp_min)
-            print(f"tmp: {tmp}\ntmp_max: {tmp_max}\ntmp_min: {tmp_min}")
         tmp_avg /= count
         tmp_avg = round(tmp_avg,2)
     except Exception as e:
@@ -247,12 +244,10 @@ def get_weather_WSD(result: dict,date:str,time:str):
     hour = (int(time[:2]) + 1)%24
     wsd_avg = 0.0
     count = 0
-    log.warning("get_weather")
     try:
         for time in range(hour,23):
             count += 1
             wsd = float(result[date][f"{time:02d}00"]["WSD"])
-            print(wsd,wsd_avg)
             wsd_avg += wsd
         wsd_avg /= count
         wsd_avg = round(wsd_avg,2)
@@ -265,7 +260,6 @@ def get_weather_POP(result: dict,date:str,time:str):
     hour = (int(time[:2]) + 1)%24
     pop_avg = 0.0
     count = 0
-    log.warning("get_weather")
     try:
         for time in range(hour,23):
             count += 1
@@ -278,6 +272,22 @@ def get_weather_POP(result: dict,date:str,time:str):
         log.error(f"error: {e}")
         raise
     return pop_avg
+
+def get_weather_REH(result: dict,date:str,time:str):
+    hour = (int(time[:2]) + 1)%24
+    reh_avg = 0.0
+    count = 0
+    try:
+        for time in range(hour,23):
+            count += 1
+            reh = float(result[date][f"{time:02d}00"]["REH"])
+            reh_avg += reh
+        reh_avg /= count
+        reh_avg = round(reh_avg,2)
+    except Exception as e:
+        log.error(f"error: {e}")
+        raise
+    return reh_avg
 
 def fetch_weather_Mid( regid : str, date : str , time : str
                        , number_of_rows : int = 10, page_number : int = 1 ): 
@@ -515,9 +525,9 @@ def test():
                     hour = (dt - (dt - 2) % 3 + 24) % 24
                     if dt == hour and min < 10:
                         hour -= 3
-                        if dt < 2:
-                            hour = hour % 24
-                            date -= 1
+                    if dt <= 2:
+                        hour = hour % 24
+                        date -= 1
                     f.write(f"call {day:02d}:{dt:02d}:{min:02d}\tget {date:02d}:{hour:02d}:10\n")
 
 if __name__ == "__main__":
