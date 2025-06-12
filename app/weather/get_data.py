@@ -85,7 +85,7 @@ def get_efficient_vilFcst_params(hour, day):
         return (int(page), 0), 290
     else:
         return (int(page), 1), 290 
-     
+
 def get_efficient_params_vil(hour, day):
     today_data_num = (24 - (hour + 1) % 24) * 12
     full_index = today_data_num + 290 * day
@@ -96,14 +96,12 @@ def get_efficient_params_vil(hour, day):
 
     # If the full index is less than or equal to 290, return the first page and the full index
     if full_index <= 290:
-        return 1, 0, full_index
-    page = np.ceil(full_index / 290)
-    padding = full_index % 290
+        return 1, 0, full_index, 0, 0
+    page = int(np.ceil(full_index / 290))
+    back_padding = page * 290 - full_index
+    front_padding = full_index - (page-1) * 290 
 
-    if padding == 0:
-        return int(page) , 0 , 290
-    else:
-        return int(page) , 1 , 290 
+    return page , 1 if back_padding else 0 , 290 , front_padding, back_padding    
 
 if __name__ == "__main__":
     print(combert_latlon_to_grid(37.564214, 127.001699))
