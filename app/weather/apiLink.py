@@ -1,4 +1,6 @@
 import requests
+import httpx
+import asyncio
 from requests.exceptions import HTTPError
 import logging as log
 from datetime import datetime, timedelta
@@ -95,23 +97,20 @@ def logging_api_response_error(error:APIResponseError):
         case _:
             log.error(f"UNKNOWN_ERROR: {error}")
 
-def get_date_time(delta_time : int = 0):
-
-    dt = datetime.now() + timedelta(days=delta_time)
-    hour = dt.hour - (dt.hour - 2) % 3
-    days_delta = hour // 24
-    hour = (hour + 24) % 24
-    dt = dt + timedelta(days=days_delta)
+def get_current_date_hour():
+    dt = datetime.now()
+    hour = (dt.hour - (dt.hour - 2) % 3 + 24) % 24
     base_time = dt.replace(hour=hour, minute=10, second=0, microsecond=0)
+
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
-    log.warning(f"date : {date}, time : {time}")
+
     return date, time
 
 def get_data_by_date(json_data, target_date):
     return json_data.get(target_date, {})
 
-def recive_weather_info( params : Dict, url:str, timeout: int = 1):
+async def recive_weather_info( params : Dict, url:str, timeout: int = 1):
     """
     recive weather data
 
@@ -129,9 +128,10 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
         Exception: If an unknown error occurs
     """
     try:
-        result = requests.get("http://apis.data.go.kr/1360000/"+url,params, timeout=10)
-        result.raise_for_status()
-        result = result.json()
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            result = await client.get("http://apis.data.go.kr/1360000/"+url,params=params, timeout=10)
+            result.raise_for_status()
+            result = result.json()
 
         head = result.get("response",{}).get("header",{})
         result_code = head.get("resultCode")
@@ -244,7 +244,7 @@ def fetch_weather_Mid( regid : str, date : str , time : str
         log.error(f"UnexpectedError : {e}")
         raise
 
-def fetch_weather_Vil( xpos : int , ypos : int , date : str , time : str 
+async def fetch_weather_vil( xpos : int , ypos : int , date : str , time : str 
                        , number_of_rows : int = 12 , page_number : int = 1 ): 
     """
     Get vilage weather data
@@ -281,16 +281,18 @@ def fetch_weather_Vil( xpos : int , ypos : int , date : str , time : str
     }
 
     try:
-        return recive_weather_info(params,url)
+        return await recive_weather_info(params,url)
     except HTTPError as e:
         raise
     except APIResponseError as e:
         logging_api_response_error(e)
+        log.error(f"APIResponseError : {e}")
+        log.info(f"Params: {params.get('base_date')}, {params.get('base_time')}, {params.get('nx')}, {params.get('ny')}, {params.get('numOfRows')}, {params.get('pageNo')}")
         raise
-    except RecursionError as e:
+    except Exception as e:
         raise
 
-def get_weather_vil( lat : float , lon : float , date : str , time : str ,
+async def get_weather_vil( lat : float , lon : float , date : str , time : str ,
                     delt_day : int = 0) -> Dict:
     '''
     Get vilage fcst weather
@@ -304,24 +306,22 @@ def get_weather_vil( lat : float , lon : float , date : str , time : str ,
     '''
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
     hour = int(time[0:2])
-    page , more_page, line = get_data.get_efficient_params_vil(hour, delt_day)
-    print(f"xgrid : {xgrid}, ygrid : {ygrid}, date : {date}, time : {time}")
-    print(f"page : {page}, more_page : {more_page}, line : {line}")
+    page , more_page, line, front_pad, back_pad = get_data.get_efficient_params_vil(hour, delt_day)
     try: 
         if more_page == 0: 
-            result = fetch_weather_Vil( xgrid, ygrid, date, time, number_of_rows=line,page_number=page)
+            result = await fetch_weather_vil( xgrid, ygrid, date, time, number_of_rows=line,page_number=page)
         else:
             result = {"response": {"body": {"items": {"item": []}}}}
-            for i in range(page - more_page, page + 1):
-                log.info(f"Fetching page {i} of {page}")
-                result_page = fetch_weather_Vil(xgrid, ygrid, date, time, number_of_rows=line, page_number=i)
-                # Merge result_page into result
-                if "response" in result_page and "body" in result_page["response"] and "items" in result_page["response"]["body"]:
-                    items = result_page["response"]["body"]["items"].get("item", [])
-                    if not isinstance(items, list):
-                        items = [items]
-                    result["response"]["body"]["items"]["item"].extend(items)
-
+            tasks = [
+                fetch_weather_vil(xgrid, ygrid, date, time, number_of_rows=line, page_number=i)
+                for i in range(page - more_page, page + 1)
+            ]
+            responses = await asyncio.gather(*tasks)
+            for result_page in responses: 
+                items = result_page.get("response", {}).get("body", {}).get("items", {}).get("item", [])
+                if not isinstance(items, list):
+                    items = [items]
+                result["response"]["body"]["items"]["item"].extend(items)
     except HTTPError as e:
         raise
     except APIResponseError as e:
@@ -361,7 +361,7 @@ def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
         raise   
     return result
      
-def get_weather( lat : float , lon : float , delt_day : int = 0):
+async def get_weather( lat : float , lon : float , delt_day : int = 0):
     '''
     get weather
     '''
@@ -370,8 +370,8 @@ def get_weather( lat : float , lon : float , delt_day : int = 0):
         raise FileNotFoundError
     
     if delt_day <= 3:
-        date, time = get_date_time()
-        result = get_weather_vil(lat, lon, date, time, delt_day)
+        date, time = get_current_date_hour()
+        result = await get_weather_vil(lat, lon, date, time, delt_day)
         result = parse_weather_vil_items(result,str(int(date)+delt_day))
         return result
     elif delt_day <= 7:
@@ -381,10 +381,8 @@ def get_weather( lat : float , lon : float , delt_day : int = 0):
         result = get_weather_Mid(lat, lon, date)
     else:
         return result
-
-if __name__ == "__main__":
+def main():
     lat, lon= 37.564214, 127.001699
-
     print(f"lat : {lat}")
     print(f"lon : {lon}")
     print(f"================================")
@@ -393,7 +391,11 @@ if __name__ == "__main__":
 
     print(f"xpos : {xpos}")
     print(f"ypos : {ypos}")
+    date, time = get_current_date_hour()
+    delt_day = 2
+    result = asyncio.run(get_weather_vil(lat, lon, date, time, delt_day))
+    result = parse_weather_vil_items(result,str(int(date)+delt_day))
+    print(result)
 
-    result = get_weather(lat, lon, 4)
-    with open("result.json", "w") as f:
-        json.dump(result, f, indent=4, ensure_ascii=False)
+if __name__ == "__main__":
+    main()
