@@ -1,4 +1,8 @@
 import requests
+import httpx
+import asyncio
+
+
 from requests.exceptions import HTTPError
 import logging as log
 from datetime import datetime, timedelta
@@ -18,7 +22,7 @@ class APIResponseError(Exception):
         self.code = code
         self.message = message
 
-def fetch_address_from_latlon( lat : float , lon : float ):
+def fetch_address_from_latlon( lat : float , lon : float , type : str = "PARCEL"):
     apiurl = "https://api.vworld.kr/req/address?"	
     params = {	
         "service": "address",	
@@ -27,7 +31,7 @@ def fetch_address_from_latlon( lat : float , lon : float ):
         "point": f"{lon},{lat}",	
         "format": "json",	
         "errorFormat" : "json",
-        "type": "ROAD",	
+        "type": "PARCEL",	
         "key": VWORLD_KEY	
     }	
     response = requests.get(apiurl, params=params)	
@@ -35,7 +39,8 @@ def fetch_address_from_latlon( lat : float , lon : float ):
         print("wow")
     return response.json()
 
-def parse_address_from_latlon(result:json):
+def parse_address_from_latlon(response:json):
+    result = response["response"]
     status = result["status"]
     if status != "OK": 
         error = result["error"]
@@ -43,15 +48,18 @@ def parse_address_from_latlon(result:json):
             APIResponseError("VWorld", error["code"], "Can not find Data")
         else:
             APIResponseError("VWorld", error["code"], error["message"])
-            
+    result = result.get("result",[])            
+    structure = result[0].get("structure",{})
+    return structure
 
 def get_address_from_latlon( lat: float , lon : float ):
     try:
-        return fetch_address_from_latlon(lat,lon)
+        result = fetch_address_from_latlon(lat,lon)
+        return parse_address_from_latlon(result)
     except Exception as e:
         log.critical(f"FUCK : {e}")
 
-def logging_api_response_error(error:APIResponseError):
+def logging_KMA_api_response_error(error:APIResponseError):
     '''
     function for APIResponseError logging
 
@@ -95,20 +103,24 @@ def logging_api_response_error(error:APIResponseError):
         case _:
             log.error(f"UNKNOWN_ERROR: {error}")
 
-def get_date_time(delta_time : int = 0):
-
-    dt = datetime.now() + timedelta(days=delta_time)
-    hour = dt.hour - (dt.hour - 2) % 3
-    days_delta = hour // 24
-    hour = (hour + 24) % 24
-    dt = dt + timedelta(days=days_delta)
-    base_time = dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+def get_corrent_date_hour_vil() -> tuple[str,str]:
+    dt = datetime.now()
+    hour = (dt.hour - (dt.hour - 2) % 3 + 24) % 24
+    base_time = dt.replace(hour=hour, minute=10)
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
-    log.warning(f"date : {date}, time : {time}")
     return date, time
 
-def recive_weather_info( params : Dict, url:str, timeout: int = 1):
+def get_corrent_date_hour_mid() -> str:
+    dt = datetime.now()
+    hour = (dt.hour - (dt.hour - 6) % 12 + 24) % 24
+    base_time = dt.replace(day=dt.day + (-1 if dt.hour < 6 else 0), hour = hour, minute=0)
+    return base_time.strftime("%Y%m%d%H%M") 
+
+def get_data_by_date(json_data, target_date):
+    return json_data.get(target_date, {})
+
+async def recive_weather_info( params : Dict, url:str, timeout: int = 10):
     """
     recive weather data
 
@@ -121,15 +133,15 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
         Json
     
     Raises:
-        HTTPError: If API Response is not vaild value
+        httpx.HTTPError: If API Response is not vaild value
         APIResponseError: If API response data is not vaild value
         Exception: If an unknown error occurs
     """
-    print(params)
     try:
-        result = requests.get("http://apis.data.go.kr/1360000/"+url,params, timeout=10)
-        result.raise_for_status()
-        result = result.json()
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            result = await client.get("http://apis.data.go.kr/1360000/"+url,params=params, timeout=10)
+            result.raise_for_status()
+            result = result.json()
 
         head = result.get("response",{}).get("header",{})
         result_code = head.get("resultCode")
@@ -137,8 +149,14 @@ def recive_weather_info( params : Dict, url:str, timeout: int = 1):
         if result_code != "00":
             result_msg = head.get("resultMsg") 
             raise APIResponseError("KMA",result_code, result_msg)
-    except HTTPError as e:
-        log.error(f"HTTPError : {e}")
+    except httpx.ReadTimeout as e:
+        log.error(f"ReadTimeout: {e}")
+        raise
+    except httpx.TimeoutException as e:
+        log.error(f"TimeoutException: {e}")
+        raise
+    except httpx.HTTPError as e:
+        log.error(f"httpx.HTTPError : {e}")
         raise
     except APIResponseError as e:
         log.error(f"APIResponseError : {e}")
@@ -174,11 +192,15 @@ def parse_weather_Mid_items( response ) :
 
     return result
 
-def parse_weather_vil_items(response):
+def parse_weather_vil_items(response, t_date):
     items = response['response']['body']['items']['item']
     result = {}
     for item in items:
         date = item['fcstDate']
+        if date != t_date:
+            log.info(f"Skipping item with date {date}, expected {t_date}")
+            continue  # 원하는 날짜와 다르면 건너뜀
+
         time = item['fcstTime']
         category = item['category']
         val = item['fcstValue']
@@ -207,7 +229,7 @@ def fetch_weather_Mid( regid : str, date : str , time : str
         JSON
     
     Raises:
-        HTTPError: If API Response is not vaild value
+        httpx.HTTPError: If API Response is not vaild value
         APIResponseError: If API response data is not vaild value
         Exception: If an unknown error occurs
         
@@ -216,6 +238,7 @@ def fetch_weather_Mid( regid : str, date : str , time : str
  
     # Even if you change the variable,
     #   DO NOT CHANGE THE FORMAT BELOW
+
     params = {
         'serviceKey' : SERVICE_KEY,
         'numOfRows' : number_of_rows,
@@ -226,8 +249,8 @@ def fetch_weather_Mid( regid : str, date : str , time : str
     }
     try:
         return recive_weather_info(params,url)
-    except HTTPError as e:
-        log.error(f"HTTPError : {e}")
+    except httpx.HTTPError as e:
+        log.error(f"httpx.HTTPError : {e}")
         raise
     except APIResponseError as e:
         log.error(f"APIResponseError : {e}")
@@ -236,8 +259,8 @@ def fetch_weather_Mid( regid : str, date : str , time : str
         log.error(f"UnexpectedError : {e}")
         raise
 
-def fetch_weather_Vil( xpos : int, ypos : int, date : str, time : str 
-                       , number_of_rows : int = 7, page_number : int = 1 ): 
+async def fetch_weather_vil( xpos : int , ypos : int , date : str , time : str 
+                       , number_of_rows : int = 12 , page_number : int = 1 ): 
     """
     Get vilage weather data
 
@@ -273,16 +296,23 @@ def fetch_weather_Vil( xpos : int, ypos : int, date : str, time : str
     }
 
     try:
-        return recive_weather_info(params,url)
-    except HTTPError as e:
+        return await recive_weather_info(params,url)
+    except httpx.ReadTimeout as e:
+        raise
+    except httpx.TimeoutException as e:
+        raise
+    except httpx.HTTPError as e:
         raise
     except APIResponseError as e:
-        logging_api_response_error(e)
+        logging_KMA_api_response_error(e)
+        log.error(f"APIResponseError : {e}")
+        log.info(f"Params: {params.get('base_date')}, {params.get('base_time')}, {params.get('nx')}, {params.get('ny')}, {params.get('numOfRows')}, {params.get('pageNo')}")
         raise
-    except RecursionError as e:
+    except Exception as e:
         raise
 
-def get_weather_vil( lat : float , lon : float , delt_day : int = 0 ) -> Dict:
+async def get_weather_vil( lat : float , lon : float , date : str , time : str ,
+                    delt_day : int = 0) -> Dict:
     '''
     Get vilage fcst weather
 
@@ -291,15 +321,31 @@ def get_weather_vil( lat : float , lon : float , delt_day : int = 0 ) -> Dict:
             in the past 
 
         Dictionary : 
-            key
+            key : 
     '''
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
-    
-    day, time = get_date_time(delt_day)
-
+    hour = int(time[0:2])
+    page , more_page, line, front_pad, back_pad = get_data.get_efficient_params_vil(hour, delt_day)
     try: 
-        result = fetch_weather_Vil( xgrid, ygrid, day, time)
-    except HTTPError as e:
+        if more_page == 0: 
+            result = await fetch_weather_vil( xgrid, ygrid, date, time, number_of_rows=line,page_number=page)
+        else:
+            result = {"response": {"body": {"items": {"item": []}}}}
+            tasks = [
+                fetch_weather_vil(xgrid, ygrid, date, time, number_of_rows=line, page_number=i)
+                for i in range(page - more_page, page + 1)
+            ]
+            responses = await asyncio.gather(*tasks)
+            for result_page in responses: 
+                items = result_page.get("response", {}).get("body", {}).get("items", {}).get("item", [])
+                if not isinstance(items, list):
+                    items = [items]
+                result["response"]["body"]["items"]["item"].extend(items)
+    except httpx.ReadTimeout as e:
+        raise
+    except httpx.TimeoutException as e:
+        raise
+    except httpx.HTTPError as e:
         raise
     except APIResponseError as e:
         raise
@@ -318,52 +364,68 @@ def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
         Dictionary : 
             key
     '''
-    xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
-    
-    dt = datetime.now() + timedelta(days=day)
-    hour = dt.hour - (dt.hour - 2) % 3
-    hour = (hour + 24) % 24
-    dt = dt + timedelta(days=(hour//24))
-    base_time = dt.replace(hour=hour, minute=10, second=0, microsecond=0)
-    corrent_date = base_time.strftime("%Y%m%d")
-    corrent_time = base_time.strftime("%H%M")
-
+    date = get_corrent_date_hour_mid()
+    geo_code = get_address_from_latlon(lat,lon)
     try: 
-        result = fetch_weather_Mid( xgrid, ygrid , corrent_date, corrent_time )
-    except HTTPError as e:
+        result = fetch_weather_Mid( geo_code, date)
+    except httpx.HTTPError as e:
         raise
     except APIResponseError as e:
-        logging_api_response_error(e)
+        logging_KMA_api_response_error(e)
         raise
     except RecursionError as e:
         raise   
     return result
      
-def get_weather( lat : float , lon : float , date : int):
+async def get_weather( lat : float , lon : float , delt_day : int = 0):
     '''
     get weather
     '''
-    if SERVICE_KEY == None:
-        raise FileNotFoundError
-
-    if date <= 3:
-        result = get_weather_vil(lat, lon, date)
-        result = parse_weather_vil_items(result)
-    elif date <= 7:
+    if delt_day <= 3:
+        date, time = get_corrent_date_hour_vil()
+        try:
+            result = await get_weather_vil(lat, lon, date, time, delt_day)
+            result = parse_weather_vil_items(result,str(int(date)+delt_day))
+        except httpx.ReadTimeout as e:
+            raise
+        except httpx.TimeoutException as e:
+            raise
+        except APIResponseError as e:
+            raise
+        except RecursionError as e:
+            raise   
+        return result
+    elif delt_day <= 7:
+        dt = datetime.now()
+        hour = dt.hour - ((dt.hour - 2) % 12 + 24) %24
         result = get_weather_Mid(lat, lon, date)
-        result = parse_weather_Mid_items(result)
-    elif date <=10:
+        result = parse_weather_Mid_items(result, str(int(date)+delt_day))
+    elif delt_day <=10:
         result = get_weather_Mid(lat, lon, date)
     else:
-        pass
+        return result
 
-    return result
-
-if __name__ == "__main__":
+def main():
     lat, lon= 37.564214, 127.001699
     print(f"lat : {lat}")
     print(f"lon : {lon}")
     print(f"================================")
+
     xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
-    result = get_weather(lat, lon, 0)
-    print(result)
+
+    print(f"xpos : {xpos}")
+    print(f"ypos : {ypos}")
+    date, time = get_corrent_date_hour_vil()
+    delt_day = 1
+    result = asyncio.run(fetch_weather_vil( xpos, ypos, date, time, number_of_rows=1000,page_number=1))
+    with open("result.json", "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    result1 = parse_weather_vil_items(result,str(int(date)+delt_day))
+    print(result1)
+
+def test():
+    for dt in range(24):
+        hour = (dt - (dt - 6) % 12 + 24) %24
+        print(hour)
+if __name__ == "__main__":
+    print(get_address_from_latlon(37.74913611,128.8784972))
