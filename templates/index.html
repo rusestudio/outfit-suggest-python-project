@@ -114,7 +114,7 @@
             font-weight: 600;
         }
 
-        .submit-btn {
+        .submit-btn, .weather-btn {
             width: 100%;
             padding: 15px;
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -128,13 +128,46 @@
             margin-top: 10px;
         }
 
-        .submit-btn:hover {
+        .weather-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            margin-bottom: 15px;
+        }
+
+        .submit-btn:hover, .weather-btn:hover {
             transform: translateY(-3px);
+        }
+
+        .submit-btn:hover {
             box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
         }
 
-        .submit-btn:active {
+        .weather-btn:hover {
+            box-shadow: 0 15px 30px rgba(40, 167, 69, 0.4);
+        }
+
+        .submit-btn:active, .weather-btn:active {
             transform: translateY(-1px);
+        }
+
+        .weather-result {
+            background: #f8f9fa;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #333;
+            white-space: pre-wrap;
+            min-height: 50px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .weather-result:empty::before {
+            content: "날씨 정보가 여기에 표시됩니다...";
+            color: #6c757d;
+            font-style: italic;
         }
 
         @keyframes slideUp {
@@ -185,6 +218,9 @@
                 <input type="text" id="destination" name="destination" placeholder="목적지를 입력하세요">
             </div>
 
+            <button type="button" id="getWeatherBtn" class="weather-btn">날씨 정보 요청</button>
+            <pre id="weatherResult" class="weather-result"></pre>
+
             <input type="submit" value="제출" class="submit-btn">
         </form>
     </div>
@@ -228,5 +264,6 @@
         }
     });
     </script>
+    <script src="/static/js/location.js"></script>
 </body>
 </html>
