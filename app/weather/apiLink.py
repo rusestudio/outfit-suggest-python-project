@@ -22,7 +22,7 @@ class APIResponseError(Exception):
         self.code = code
         self.message = message
 
-def fetch_address_from_latlon( lat : float , lon : float ):
+def fetch_address_from_latlon( lat : float , lon : float , type : str = "PARCEL"):
     apiurl = "https://api.vworld.kr/req/address?"	
     params = {	
         "service": "address",	
@@ -31,7 +31,7 @@ def fetch_address_from_latlon( lat : float , lon : float ):
         "point": f"{lon},{lat}",	
         "format": "json",	
         "errorFormat" : "json",
-        "type": "ROAD",	
+        "type": "PARCEL",	
         "key": VWORLD_KEY	
     }	
     response = requests.get(apiurl, params=params)	
@@ -39,7 +39,8 @@ def fetch_address_from_latlon( lat : float , lon : float ):
         print("wow")
     return response.json()
 
-def parse_address_from_latlon(result:json):
+def parse_address_from_latlon(response:json):
+    result = response["response"]
     status = result["status"]
     if status != "OK": 
         error = result["error"]
@@ -47,15 +48,18 @@ def parse_address_from_latlon(result:json):
             APIResponseError("VWorld", error["code"], "Can not find Data")
         else:
             APIResponseError("VWorld", error["code"], error["message"])
-            
+    result = result.get("result",[])            
+    structure = result[0].get("structure",{})
+    return structure
 
 def get_address_from_latlon( lat: float , lon : float ):
     try:
-        return fetch_address_from_latlon(lat,lon)
+        result = fetch_address_from_latlon(lat,lon)
+        return parse_address_from_latlon(result)
     except Exception as e:
         log.critical(f"FUCK : {e}")
 
-def logging_api_response_error(error:APIResponseError):
+def logging_KMA_api_response_error(error:APIResponseError):
     '''
     function for APIResponseError logging
 
@@ -99,14 +103,12 @@ def logging_api_response_error(error:APIResponseError):
         case _:
             log.error(f"UNKNOWN_ERROR: {error}")
 
-def get_corrent_date_hour_vil():
+def get_corrent_date_hour_vil() -> tuple[str,str]:
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 2) % 3 + 24) % 24
     base_time = dt.replace(hour=hour, minute=10)
-
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
-
     return date, time
 
 def get_corrent_date_hour_mid() -> str:
@@ -302,7 +304,7 @@ async def fetch_weather_vil( xpos : int , ypos : int , date : str , time : str
     except httpx.HTTPError as e:
         raise
     except APIResponseError as e:
-        logging_api_response_error(e)
+        logging_KMA_api_response_error(e)
         log.error(f"APIResponseError : {e}")
         log.info(f"Params: {params.get('base_date')}, {params.get('base_time')}, {params.get('nx')}, {params.get('ny')}, {params.get('numOfRows')}, {params.get('pageNo')}")
         raise
@@ -362,21 +364,14 @@ def get_weather_Mid( lat : float , lon : float , day : int = 0 ) -> Dict:
         Dictionary : 
             key
     '''
-    
-    dt = datetime.now() + timedelta(days=day)
-    hour = dt.hour - (dt.hour - 2) % 3
-    hour = (hour + 24) % 24
-    dt = dt + timedelta(days=(hour//24))
-    base_time = dt.replace(hour=hour, minute=10, second=0, microsecond=0)
-    corrent_date = base_time.strftime("%Y%m%d")
-    corrent_time = base_time.strftime("%H%M")
-
+    date = get_corrent_date_hour_mid()
+    geo_code = get_address_from_latlon(lat,lon)
     try: 
-        result = fetch_weather_Mid( xgrid, ygrid , corrent_date, corrent_time )
+        result = fetch_weather_Mid( geo_code, date)
     except httpx.HTTPError as e:
         raise
     except APIResponseError as e:
-        logging_api_response_error(e)
+        logging_KMA_api_response_error(e)
         raise
     except RecursionError as e:
         raise   
@@ -433,5 +428,4 @@ def test():
         hour = (dt - (dt - 6) % 12 + 24) %24
         print(hour)
 if __name__ == "__main__":
-    re = get_corrent_date_hour_mid()
-    print(re)
+    print(get_address_from_latlon(37.74913611,128.8784972))
