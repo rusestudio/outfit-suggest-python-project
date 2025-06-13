@@ -1,9 +1,8 @@
 import requests
 import httpx
 import asyncio
+import pandas
 
-
-from requests.exceptions import HTTPError
 import logging as log
 from datetime import datetime, timedelta
 from typing import Dict
@@ -63,10 +62,10 @@ def get_address_from_latlon( lat: float , lon : float ):
     except Exception as e:
         log.critical(f"FUCK : {e}")
 
-def get_KMA_location_code( lat:float , lon : float):
+def get_KMA_code_land( lat:float , lon : float):
     pass
 
-def get_KMA_location_code( lat:float , lon : float):
+def get_KMA_code_tmpr( lat:float , lon : float):
     pass
 
 def logging_KMA_api_response_error(error:APIResponseError):
@@ -496,6 +495,20 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
         result = get_weather_Mid(lat, lon, date)
     else:
         return result
+
+def get_weather_vil_average(result:dict)-> dict[str,]:
+    tmp_avg, _, _ = get_weather_TMX_TMN(result)
+    wsd_avg = get_weather_WSD(result)
+    pop_avg = get_weather_POP(result)
+    reh_avg = get_weather_REH(result)
+    weather_data = {
+        "temperature": str(tmp_avg),  # Celsius
+        "wind": str(wsd_avg),  # or value in km/h
+        "rain": str(pop_avg), #%
+        "humidity": str(reh_avg),
+    }
+    return weather_data
+    
 
 def main():
     lat, lon= 37.564214, 127.001699
