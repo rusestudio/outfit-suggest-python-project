@@ -14,7 +14,7 @@ from database import userData
 genai.configure(api_key="AIzaSyC8YOsoIj5YuWex1muFSwXCGwcDOaAUUAY")
 
 # api define picture
-api_key = "sk-JMYyFEVPfYvhzmfZmh3i5YRB7oEAM2DUYl7oTXfLANbGltQ1"
+api_key = "sk-WSt7i36C7Hwxvk9TXiHI7Msz49fc3VXzgMHVlEJAWLLGaRmp"
 api_url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
 
 
@@ -25,24 +25,51 @@ def get_result(prompt: str):
     return response.text
 
 #save explaination
+import re
+
+import re
+
 def save_explaination(result):
-    # Split the result by image prompts (should separate each outfit block)
     blocks = result.strip().split("**Image Prompt:**")
 
     explanations = []
-    for block in blocks[:3]:  # Only first 3 outfits
-        cleaned = block.strip()
+    for block in blocks[:3]:
+        block = block.strip()
 
-        # Optional cleanup of markdown-style asterisks
-        cleaned = cleaned.replace("*", "").strip()
+        # Step 1: Find the start of the outfit explanation
+        start_index = block.find("Outfit")
+        if start_index == -1:
+            explanations.append("No outfit explanation found.")
+            continue
 
-        explanations.append(cleaned)
+        # Step 2: Cut off before "Image Generation Prompt:"
+        end_index = block.find("Image Generation Prompt:")
+        if end_index == -1:
+            end_index = len(block)
 
-    # Ensure we always return 3 entries
+        explanation = block[start_index:end_index].strip()
+
+        # Step 3: Remove all * characters
+        explanation = explanation.replace("*", "")
+
+        # Step 4: Add \n before key headers
+        explanation = re.sub(r'(Materials, Types, and Colors:)', r'\n\1', explanation)
+        explanation = re.sub(r'(Why it fits:)', r'\n\1', explanation)
+
+        # Step 5: Remove double spaces and strip
+        explanation = re.sub(r'\s+', ' ', explanation).strip()
+
+        # Optional: Fix newline formatting for visual clarity
+        explanation = explanation.replace('\n ', '\n')  # fix space after newline
+
+        explanations.append(explanation)
+
     while len(explanations) < 3:
         explanations.append("No outfit suggestion available.")
 
     return explanations
+
+
 
 
 def generate_images(image_prompts: list):
@@ -90,6 +117,6 @@ def main(user, weather_data, clothes_data, user_input):
 
 # Only run this if the file is executed directly
 if __name__ == "__main__":
-    suggest = main()
+    suggest = main(user, weather_data, clothes_data, user_input)
     for s in suggest:
         print(json.dumps(s, indent=2))

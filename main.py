@@ -108,18 +108,19 @@ async def submit_form( submit: SubmitRequest, request: Request):
         #avg, _,_  = apiLink.get_weather_TMX_TMN(weather_data2,day,time)
         #weather_datad["temperature"] = avg
 
-        weather_datad= apiLink.get_weather_vil_average(weather_data2)
+        weather_data= apiLink.get_weather_vil_average(weather_data2,day,time)
+        #print(weather_data)
 
         user = get_user_by_login_id(userData.login_id)
         
         # Build prompt with user data, weather data, and clothes data
-        suggestions = main(user, weather_datad, clothes_data, user_input)
+        suggestions = main(user, weather_data, clothes_data, user_input)
 
         
         return templates.TemplateResponse("result.html", {
             "request": request,
             "suggestions": suggestions,
-            "weather_data": weather_datad,  # Optional: pass weather data to template
+            "weather_data": weather_data,  # Optional: pass weather data to template
             "user_input": user_input       # Optional: pass user input to template
         })
         

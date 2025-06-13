@@ -123,6 +123,7 @@ def get_corrent_date_hour_vil() -> tuple[str,str]:
     base_time = dt.replace(day=dt.day + (-1 if dt.hour < 2 else 0),hour=hour, minute=10)
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
+    log.info(f"date:{date}, time:{time}")
     return date, time
 
 def get_corrent_date_hour_mid() -> str:
@@ -496,11 +497,11 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
     else:
         return result
 
-def get_weather_vil_average(result:dict)-> dict[str,]:
-    tmp_avg, _, _ = get_weather_TMX_TMN(result)
-    wsd_avg = get_weather_WSD(result)
-    pop_avg = get_weather_POP(result)
-    reh_avg = get_weather_REH(result)
+def get_weather_vil_average(result:dict,date,time)-> dict[str,str]:
+    tmp_avg, _, _ = get_weather_TMX_TMN(result,date,time)
+    wsd_avg = get_weather_WSD(result,date,time)
+    pop_avg = get_weather_POP(result,date,time)
+    reh_avg = get_weather_REH(result,date,time)
     weather_data = {
         "temperature": str(tmp_avg),  # Celsius
         "wind": str(wsd_avg),  # or value in km/h

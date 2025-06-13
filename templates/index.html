@@ -180,7 +180,7 @@
             <h2>외출하실 정보를 입력해주세요</h2>
         </div>
 
-        <form id="information">
+        <form id="information" method="POST">
             <div class="form-group">
                 <label for="when">외출하실 날짜를 선택해주세요.</label>
                 <input type="date" id="when" name="when" required>
@@ -189,8 +189,8 @@
             <div class="form-group">
                 <label>활동 환경을 선택해주세요.</label>
                 <div class="radio-group">
-                    <label><input type="radio" name="environment" value="outside"> 실외</label>
-                    <label><input type="radio" name="environment" value="inside"> 실내</label>
+                   <label><input type="radio" name="environment" value="outside"> 실외</label>
+                   <label><input type="radio" name="environment" value="inside"> 실내</label>
                 </div>
             </div>
 
@@ -202,9 +202,22 @@
             <button type="button" id="submitBtn" class="submit-btn">제출 및 날씨 요청</button>
         </form>
     </div>
+    <div id="testresult" style="display: none;"></div>
 
     <script>
-        document.getElementById('submitBtn').addEventListener('click', function () {
+        // Option 1: Using button click event with type="button"
+        document.getElementById('submitBtn').addEventListener('click', function (event) {
+            event.preventDefault(); // Prevent any default behavior
+            submitForm();
+        });
+
+        // Option 2: Alternative - using form submit event
+        // document.getElementById('information').addEventListener('submit', function (event) {
+        //     event.preventDefault(); // Prevent default form submission
+        //     submitForm();
+        // });
+
+        function submitForm() {
             const when = document.getElementById('when').value;
             const destination = document.getElementById('destination').value;
             const environment = document.querySelector('input[name="environment"]:checked');
@@ -219,17 +232,26 @@
                 return;
             }
 
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '처리 중...';
+            submitBtn.disabled = true;
+
             navigator.geolocation.getCurrentPosition(async function (position) {
                 const latitude = position.coords.latitude;
                 const longitude = position.coords.longitude;
-                const accuracy = position.coords.accuracy;
+                //const accuracy = position.coords.accuracy;
 
-                if (accuracy > 5000) {
-                        "정확한 위치를 가져오지 못했습니다 (정확도: " + accuracy + "m)";
-                    return;
-                }
+                //if (accuracy > 5000) {
+                    //alert("정확한 위치를 가져오지 못했습니다 (정확도: " + accuracy + "m)");
+                    //submitBtn.textContent = originalText;
+                    //submitBtn.disabled = false;
+                    //return;
+                //}
 
                 try {
+                    console.log("Sending request to /submit..."); // Debug log
                     const response = await fetch('/submit', {
                         method: 'POST',
                         headers: {
@@ -248,6 +270,8 @@
                         })
                     });
 
+                    console.log("Response status:", response.status); // Debug log
+
                     if (response.ok) {
                         const html = await response.text();
                         document.open();
@@ -255,21 +279,31 @@
                         document.close();
                     } else {
                         const errorText = await response.text();
+                        console.error("Server error:", errorText); // Debug log
+                        document.getElementById("testresult").style.display = "block";
                         document.getElementById("testresult").textContent = "오류 응답:\n" + errorText;
                     }
 
                 } catch (err) {
-                    document.getElementById("testresult").textContent = "에러 발생2: " + err.message;
+                    console.error("Fetch error:", err); // Debug log
+                    document.getElementById("testresult").style.display = "block";
+                    document.getElementById("testresult").textContent = "에러 발생: " + err.message;
+                } finally {
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
                 }
 
             }, function (error) {
+                console.error("Geolocation error:", error); // Debug log
                 alert("위치 정보를 가져올 수 없습니다: " + error.message);
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             }, {
                 enableHighAccuracy: true,
                 timeout: 10000,
                 maximumAge: 0
             });
-        });
+        }
     </script>
 </body>
 </html>
