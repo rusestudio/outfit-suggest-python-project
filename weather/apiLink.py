@@ -1,9 +1,8 @@
 import requests
 import httpx
 import asyncio
+import pandas
 
-
-from requests.exceptions import HTTPError
 import logging as log
 from datetime import datetime, timedelta
 from typing import Dict
@@ -14,6 +13,8 @@ if __name__ == "__main__":
     import get_data
 else:
     from . import get_data
+
+logger = log.getLogger(__name__)
 
 class APIResponseError(Exception):
     def __init__(self, name, code, message):
@@ -50,7 +51,9 @@ def parse_address_from_latlon(response:json):
             APIResponseError("VWorld", error["code"], error["message"])
     result = result.get("result",[])            
     structure = result[0].get("structure",{})
-    return structure
+    level1 = structure["level1"]
+    level2 = structure["level2"]
+    return level1 , level2
 
 def get_address_from_latlon( lat: float , lon : float ):
     try:
@@ -58,6 +61,12 @@ def get_address_from_latlon( lat: float , lon : float ):
         return parse_address_from_latlon(result)
     except Exception as e:
         log.critical(f"FUCK : {e}")
+
+def get_KMA_code_land( lat:float , lon : float):
+    pass
+
+def get_KMA_code_tmpr( lat:float , lon : float):
+    pass
 
 def logging_KMA_api_response_error(error:APIResponseError):
     '''
@@ -107,7 +116,10 @@ def get_corrent_date_hour_vil() -> tuple[str,str]:
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 2) % 3 + 24) % 24
     if (hour == dt.hour and dt.minute < 10):
-        hour -= 1
+        hour -= 3
+    if dt.hour < 2:
+        hour = hour % 24
+        dt = dt - timedelta(days=1)
     base_time = dt.replace(day=dt.day + (-1 if dt.hour < 2 else 0),hour=hour, minute=10)
     date = base_time.strftime("%Y%m%d")
     time = base_time.strftime("%H%M")
@@ -116,13 +128,16 @@ def get_corrent_date_hour_vil() -> tuple[str,str]:
 def get_corrent_date_hour_mid() -> str:
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 6) % 12 + 24) % 24
+    if dt.hour < 6:
+        hour = hour % 24
+        dt = dt - timedelta(days=1)
     base_time = dt.replace(day=dt.day + (-1 if dt.hour < 6 else 0), hour = hour, minute=0)
     return base_time.strftime("%Y%m%d%H%M") 
 
 def get_data_by_date(json_data, target_date):
     return json_data.get(target_date, {})
 
-async def recive_weather_info( params : Dict, url:str, timeout: int = 2000):
+async def recive_weather_info( params : Dict, url:str, timeout: int = 100):
     """
     recive weather data
 
@@ -141,7 +156,7 @@ async def recive_weather_info( params : Dict, url:str, timeout: int = 2000):
     """
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            result = await client.get("http://apis.data.go.kr/1360000/"+url,params=params, timeout=timeout)
+            result = await client.get("http://apis.data.go.kr/1360000/"+url,params=params, timeout=10)
             result.raise_for_status()
             result = result.json()
 
@@ -213,8 +228,6 @@ def parse_weather_vil_items(response, t_date):
             result[date][time] = {}
 
         result[date][time][category] = val
-        log.info(f"val: {val}")
-    log.info(result)
     return result
 
 def get_weather_TMX_TMN(result: dict,date:str,time:str):
@@ -223,22 +236,69 @@ def get_weather_TMX_TMN(result: dict,date:str,time:str):
     tmp_min = 999
     tmp_avg = 0
     count = 0
-    print(hour)
     try:
         for time in range(hour,23):
             count += 1
             tmp = int(result[date][f"{time:02d}00"]["TMP"])
-            print(tmp)
             tmp_avg += tmp
             tmp_max = max(tmp,tmp_max)
             tmp_min = min(tmp,tmp_min)
-            print(f"tmp: {tmp}\ntmp_max: {tmp_max}\ntmp_min: {tmp_min}")
         tmp_avg /= count
+        tmp_avg = round(tmp_avg,2)
     except Exception as e:
         log.error(f"error: {e}")
-        pass
+        raise
 
     return tmp_avg, tmp_min, tmp_max
+
+def get_weather_WSD(result: dict,date:str,time:str):
+    hour = (int(time[:2]) + 1)%24
+    wsd_avg = 0.0
+    count = 0
+    try:
+        for time in range(hour,23):
+            count += 1
+            wsd = float(result[date][f"{time:02d}00"]["WSD"])
+            wsd_avg += wsd
+        wsd_avg /= count
+        wsd_avg = round(wsd_avg,2)
+    except Exception as e:
+        log.error(f"error: {e}")
+        raise
+    return wsd_avg
+
+def get_weather_POP(result: dict,date:str,time:str):
+    hour = (int(time[:2]) + 1)%24
+    pop_avg = 0.0
+    count = 0
+    try:
+        for time in range(hour,23):
+            count += 1
+            pop = float(result[date][f"{time:02d}00"]["POP"])
+            print(pop,pop_avg)
+            pop_avg += pop
+        pop_avg /= count
+        pop_avg = round(pop_avg,2)
+    except Exception as e:
+        log.error(f"error: {e}")
+        raise
+    return pop_avg
+
+def get_weather_REH(result: dict,date:str,time:str):
+    hour = (int(time[:2]) + 1)%24
+    reh_avg = 0.0
+    count = 0
+    try:
+        for time in range(hour,23):
+            count += 1
+            reh = float(result[date][f"{time:02d}00"]["REH"])
+            reh_avg += reh
+        reh_avg /= count
+        reh_avg = round(reh_avg,2)
+    except Exception as e:
+        log.error(f"error: {e}")
+        raise
+    return reh_avg
 
 def fetch_weather_Mid( regid : str, date : str , time : str
                        , number_of_rows : int = 10, page_number : int = 1 ): 
@@ -274,6 +334,7 @@ def fetch_weather_Mid( regid : str, date : str , time : str
         'regid' : regid,
         'tmFc' : time
     }
+    print(params)
     try:
         return recive_weather_info(params,url)
     except httpx.HTTPError as e:
@@ -336,7 +397,6 @@ async def fetch_weather_vil( xpos : int , ypos : int , date : str , time : str
         log.info(f"Params: {params.get('base_date')}, {params.get('base_time')}, {params.get('nx')}, {params.get('ny')}, {params.get('numOfRows')}, {params.get('pageNo')}")
         raise
     except Exception as e:
-        print("d")
         raise
 
 async def get_weather_vil( lat : float , lon : float , date : str , time : str ,
@@ -354,7 +414,6 @@ async def get_weather_vil( lat : float , lon : float , date : str , time : str ,
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
     hour = int(time[0:2])
     page , more_page, line, front_pad, back_pad = get_data.get_efficient_params_vil(hour, delt_day)
-    log.info(line)
     try: 
         if more_page == 0: 
             result = await fetch_weather_vil( xgrid, ygrid, date, time, number_of_rows=line,page_number=page)
@@ -410,7 +469,7 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
     '''
     get weather
     '''
-    result = {}
+    print("what?")
     if delt_day <= 3:
         date, time = get_corrent_date_hour_vil()
         log.warning(f"{date}{time}")
@@ -437,6 +496,20 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
     else:
         return result
 
+def get_weather_vil_average(result:dict)-> dict[str,]:
+    tmp_avg, _, _ = get_weather_TMX_TMN(result)
+    wsd_avg = get_weather_WSD(result)
+    pop_avg = get_weather_POP(result)
+    reh_avg = get_weather_REH(result)
+    weather_data = {
+        "temperature": str(tmp_avg),  # Celsius
+        "wind": str(wsd_avg),  # or value in km/h
+        "rain": str(pop_avg), #%
+        "humidity": str(reh_avg),
+    }
+    return weather_data
+    
+
 def main():
     lat, lon= 37.564214, 127.001699
     print(f"lat : {lat}")
@@ -452,6 +525,7 @@ def main():
     print(f"================================")
 
     delt_day = 1
+    log.info("fuck you")
     result = asyncio.run(get_weather(lat,lon,delt_day))
     # result = await get_weather_vil(lat, lon, date, time, delt_day)
     date = str(int(date)+delt_day)
@@ -459,14 +533,18 @@ def main():
     with open("result.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
     avg, tmp_min, tmp_max = get_weather_TMX_TMN(result, date, time)
-
+    wsd_avg = get_weather_WSD(result, date, time)
+    pop = get_weather_POP(result, date, time)
     print(date,time)
-    print(avg,tmp_min,tmp_max)
+    print(avg,tmp_min,tmp_max,wsd_avg)
+    print(pop)
 
 def test():
-    for dt in range(24):
-        hour = (dt - (dt - 6) % 12 + 24) %24
-        print(hour)
+    l1, l2 = get_address_from_latlon(37.564214, 127.001699)
+    print(l1)
+    print(l2)
 
 if __name__ == "__main__":
-    main()
+    log.basicConfig(filename="example.log", filemode="w",level=log.INFO)
+    log.info("start __main__")
+    test()

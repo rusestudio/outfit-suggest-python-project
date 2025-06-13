@@ -6,7 +6,7 @@ import uuid
 import google.generativeai as genai
 import requests
 
-from data_to_be_prompt import weather_data, clothes_data
+from data_to_be_prompt import clothes_data
 from prompt import build_prompt, image_prompt
 from database import userData
 

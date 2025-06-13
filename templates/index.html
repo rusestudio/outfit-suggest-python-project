@@ -225,7 +225,6 @@
                 const accuracy = position.coords.accuracy;
 
                 if (accuracy > 5000) {
-                    document.getElementById("weatherResult").textContent =
                         "정확한 위치를 가져오지 못했습니다 (정확도: " + accuracy + "m)";
                     return;
                 }

@@ -13,8 +13,8 @@ def build_prompt(userData,weather_data, clothes_data, user_input):
         
         Current weather conditions:
         - Temperature: {weather_data['temperature']}°C
-        - Wind: {weather_data['wind']}
-        - Rain: {weather_data['rain']}
+        - Wind: {weather_data['wind']} m/h
+        - Rain: {weather_data['rain']} % 
         - Humidity: {weather_data['humidity']}%
 
         Available clothing options include the following types:
