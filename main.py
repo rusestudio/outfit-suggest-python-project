@@ -1,8 +1,9 @@
+from asyncio.windows_events import NULL
 from fastapi import FastAPI, Request, Form, HTTPException
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from database import userData, add_user, get_user_by_login_id
+from database import userData, add_user, get_user_by_login_id, get_password_by_login_id
 from llm_model_suggest import main 
 from data_to_be_prompt import clothes_data
 from prompt import build_prompt
@@ -12,8 +13,9 @@ from fastapi.staticfiles import StaticFiles
 
 import base64
 from typing import List
-
+import json
 from weather import apiLink
+
 
 def setup_log():
     log.basicConfig(
@@ -58,12 +60,18 @@ def get_login(request: Request):
 #to login and check data from db                          #--send to database user sign up
 @app.post("/login")
 async def post_login(data: userData):
-    user = get_user_by_login_id(data.login_id)
-    if user and user.password == data.password: #to fetch data from db
+    if(data.login_id != NULL or data.password != NULL):
+        data.login_id = str(data.login_id)
+        data.password = str(data.password)
+        password = get_password_by_login_id(data.login_id)
+    else:
+        data.password = "1234"
+        password = "3456"
+    if password == data.password: #to fetch data from db
         return {"message": "Login successful!", "access_token": "fake-jwt"}
     else:
-        return {"detail": "Invalid credentials"}, 401
-
+        return {"detail": "Invalid credentials", "message": "!"}, 4
+    
 #/index main page 
 @app.get("/index")
 def get_login(request: Request):

@@ -3,6 +3,7 @@ import json
 from sqlmodel import Field, SQLModel, create_engine, Session, select
 from fastapi import FastAPI
 from fastapi import APIRouter
+import logging as log
 
 # DB에 저장할 데이터 모델 정의 | # Define the data model to be stored in the DB
 class userData(SQLModel, table=True):
@@ -72,11 +73,19 @@ def add_user(user_info: userData):
         return user_info
     
 # data DB에서 특정 사용자 데이터를 조회하는 함수 | # Function to retrieve specific user data from the data DB
-def get_user_by_login_id(login_id: str):
+def get_user_by_login_id(login_id_input: str):
     with Session(data) as session:
-        statement = select(userData).where(userData.login_id == login_id)
+        statement = select(userData).where(userData.login_id == login_id_input)
         user = session.exec(statement).first()
         return user
+    
+def get_password_by_login_id(id: str):
+    with Session(data) as session:
+        statement = select(userData).where(userData.login_id == id)
+        user = session.exec(statement).first()
+        if user:
+            return user.password
+        return None
     
 # data DB에서 특정 사용자 데이터를 업데이트하는 함수 | # Function to update specific user data in the data DB
 def update_user(user_info: userData):
@@ -183,6 +192,7 @@ SQLModel.metadata.create_all(image)
 if __name__ == "__main__":
     print("Server is running...")
 
+#print(get_password_by_login_id("testuser"))
 # DB 연결 오류 발생시 예외 처리 코드 | # Exception handling code for DB connection errors
 try:
     data.connect()

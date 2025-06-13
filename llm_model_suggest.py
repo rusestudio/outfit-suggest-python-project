@@ -9,13 +9,14 @@ import requests
 from data_to_be_prompt import clothes_data
 from prompt import build_prompt, image_prompt
 from database import userData
+from img_gen import generate_images
 
 # gemini text api define
 genai.configure(api_key="AIzaSyC8YOsoIj5YuWex1muFSwXCGwcDOaAUUAY")
 
 # api define picture
-api_key = "sk-WSt7i36C7Hwxvk9TXiHI7Msz49fc3VXzgMHVlEJAWLLGaRmp"
-api_url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
+#api_key = "sk-WSt7i36C7Hwxvk9TXiHI7Msz49fc3VXzgMHVlEJAWLLGaRmp"
+#api_url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
 
 
 # send prompt to gemini
@@ -72,26 +73,26 @@ def save_explaination(result):
 
 
 
-def generate_images(image_prompts: list):
-    images = []
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/json",
-    }
+#def generate_images(image_prompts: list):
+ #   images = []
+ #   headers = {
+ ##       "Authorization": f"Bearer {api_key}",
+  #      "Accept": "application/json",
+  #  }
 
-    for prompt_text in image_prompts:
-        files = {
-            "prompt": (None, prompt_text),
-            "output_format": (None, "png"),
-        }
-        response = requests.post(api_url, files=files, headers=headers)
-        if response.status_code == 200:
-            image_base64 = response.json()["image"]
-            images.append(f"data:image/png;base64,{image_base64}")
-        else:
-            images.append("image not available")  # Placeholder for failed image
+  #  for prompt_text in image_prompts:
+   #     files = {
+  #          "prompt": (None, prompt_text),
+  #          "output_format": (None, "png"),
+  #      }
+  #      response = requests.post(api_url, files=files, headers=headers)
+  #      if response.status_code == 200:
+  #          image_base64 = response.json()["image"]
+  #          images.append(f"data:image/png;base64,{image_base64}")
+  #      else:
+  #          images.append("image not available")  # Placeholder for failed image
 
-    return images
+  #  return images
 
 
 def main(user, weather_data, clothes_data, user_input):
@@ -101,7 +102,8 @@ def main(user, weather_data, clothes_data, user_input):
     result = get_result(prompt)
     #save explanation
     explanations = save_explaination(result)
-    # prompt_text
+
+    # prompt_text img
     imageprompts = image_prompt(result)
     image_base64_list = generate_images(imageprompts)
 
