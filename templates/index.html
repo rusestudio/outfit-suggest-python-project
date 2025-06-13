@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>사용자 정보 받기</title>
- <style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>외출 정보 입력</title>
+</head>
+<body>
+    <style>
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +29,7 @@
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             backdrop-filter: blur(10px);
             animation: slideUp 0.6s ease-out forwards;
         }
@@ -38,11 +41,12 @@
 
         .form-header h2 {
             color: #333;
-            font-size: 2.2rem;
+            font-size: 2.5rem;
             margin-bottom: 10px;
             background: linear-gradient(135deg, #667eea, #764ba2);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-weight: 600;
         }
 
         .form-group {
@@ -78,25 +82,22 @@
         }
 
         .radio-group {
-            margin: 15px 0;
+            display: flex;
+            gap: 30px;
+            margin-top: 10px;
         }
 
         .radio-group label {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
-            padding: 12px 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
+            color: #666;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
+            transition: color 0.3s ease;
         }
 
         .radio-group label:hover {
-            border-color: #667eea;
-            background: white;
-            transform: translateY(-1px);
+            color: #667eea;
         }
 
         .radio-group input[type="radio"] {
@@ -106,15 +107,7 @@
             accent-color: #667eea;
         }
 
-        .radio-group input[type="radio"]:checked + label,
-        .radio-group label:has(input[type="radio"]:checked) {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        .submit-btn, .weather-btn {
+        .submit-btn {
             width: 100%;
             padding: 15px;
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -125,49 +118,33 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .weather-btn {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            margin-bottom: 15px;
-        }
-
-        .submit-btn:hover, .weather-btn:hover {
-            transform: translateY(-3px);
+            margin-top: 20px;
         }
 
         .submit-btn:hover {
+            transform: translateY(-3px);
             box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
         }
 
-        .weather-btn:hover {
-            box-shadow: 0 15px 30px rgba(40, 167, 69, 0.4);
-        }
-
-        .submit-btn:active, .weather-btn:active {
+        .submit-btn:active {
             transform: translateY(-1px);
         }
 
         .weather-result {
-            background: #f8f9fa;
+            background-color: #f8f9fa;
             border: 2px solid #e1e5e9;
+            padding: 20px;
             border-radius: 12px;
-            padding: 15px;
-            margin-top: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            color: #333;
+            margin-top: 25px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 1rem;
             white-space: pre-wrap;
-            min-height: 50px;
-            max-height: 200px;
-            overflow-y: auto;
+            transition: all 0.3s ease;
         }
 
-        .weather-result:empty::before {
-            content: "날씨 정보가 여기에 표시됩니다...";
-            color: #6c757d;
-            font-style: italic;
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
         }
 
         @keyframes slideUp {
@@ -185,21 +162,25 @@
             .form-container {
                 padding: 40px 30px;
                 margin: 10px;
+                max-width: 400px;
             }
             
             .form-header h2 {
-                font-size: 1.8rem;
+                font-size: 2rem;
+            }
+
+            .radio-group {
+                gap: 20px;
             }
         }
     </style>
-</head>
-<body>
+
     <div class="form-container">
         <div class="form-header">
             <h2>외출하실 정보를 입력해주세요</h2>
         </div>
-        
-        <form id="information" action="/submit" method="POST">
+
+        <form id="information">
             <div class="form-group">
                 <label for="when">외출하실 날짜를 선택해주세요.</label>
                 <input type="date" id="when" name="when" required>
@@ -208,62 +189,87 @@
             <div class="form-group">
                 <label>활동 환경을 선택해주세요.</label>
                 <div class="radio-group">
-                    <label><input type="radio" name="destination" value="outside">실외</label>
-                    <label><input type="radio" name="destination" value="inside">실내</label>
+                    <label><input type="radio" name="environment" value="outside"> 실외</label>
+                    <label><input type="radio" name="environment" value="inside"> 실내</label>
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="destination">활동하실 장소를 입력해주세요.</label>
-                <input type="text" id="destination" name="destination" placeholder="목적지를 입력하세요">
+                <input type="text" id="destination" name="destination" placeholder="목적지를 입력하세요" required>
             </div>
 
-            <button type="button" id="getWeatherBtn" class="weather-btn">날씨 정보 요청</button>
-            <pre id="weatherResult" class="weather-result"></pre>
-
-            <input type="submit" value="제출" class="submit-btn">
+            <button type="button" id="submitBtn" class="submit-btn">제출 및 날씨 요청</button>
         </form>
     </div>
 
     <script>
-    document.getElementById('information').addEventListener('submit', async function(event) {
-        event.preventDefault();
+        document.getElementById('submitBtn').addEventListener('click', function () {
+            const when = document.getElementById('when').value;
+            const destination = document.getElementById('destination').value;
+            const environment = document.querySelector('input[name="environment"]:checked');
 
-        const data = {
-            when: document.getElementById('when').value,
-            destination: document.querySelector('input[name="destination"]:checked')?.value,
-            place: document.getElementById('destination').value
-        };
-
-        if (!data.when || !data.destination) {
-            alert('날짜와 활동 환경을 선택해주세요.');
-            return;
-        }
-
-        try {
-            const response = await fetch('/submit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-        when: document.getElementById('when').value,
-        destination: document.getElementById('destination').value
-    })
-            });
-
-            if (response.redirected) {
-                window.location.href = '/result';  // redirect to result page
-            } else {
-                const result = await response.json();
-                alert("서버 응답: " + JSON.stringify(result));
+            if (!when || !destination || !environment) {
+                alert("날짜, 활동 환경, 목적지를 모두 입력해주세요.");
+                return;
             }
 
-        } catch (error) {
-            alert("에러 발생: " + error);
-        }
-    });
+            if (!navigator.geolocation) {
+                alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async function (position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                const accuracy = position.coords.accuracy;
+
+                if (accuracy > 5000) {
+                        "정확한 위치를 가져오지 못했습니다 (정확도: " + accuracy + "m)";
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            submit_data: {
+                                when: when,
+                                destination: destination,
+                                environment: environment.value
+                            },
+                            location: {
+                                latitude: latitude,
+                                longitude: longitude
+                            }
+                        })
+                    });
+
+                    if (response.ok) {
+                        const html = await response.text();
+                        document.open();
+                        document.write(html);
+                        document.close();
+                    } else {
+                        const errorText = await response.text();
+                        document.getElementById("testresult").textContent = "오류 응답:\n" + errorText;
+                    }
+
+                } catch (err) {
+                    document.getElementById("testresult").textContent = "에러 발생2: " + err.message;
+                }
+
+            }, function (error) {
+                alert("위치 정보를 가져올 수 없습니다: " + error.message);
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        });
     </script>
-    <script src="/static/js/location.js"></script>
 </body>
 </html>
