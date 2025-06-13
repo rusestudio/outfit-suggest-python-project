@@ -52,7 +52,9 @@ def parse_address_from_latlon(response:json):
             APIResponseError("VWorld", error["code"], error["message"])
     result = result.get("result",[])            
     structure = result[0].get("structure",{})
-    return structure
+    level1 = structure["level1"]
+    level2 = structure["level2"]
+    return level1 , level2
 
 def get_address_from_latlon( lat: float , lon : float ):
     try:
@@ -60,6 +62,12 @@ def get_address_from_latlon( lat: float , lon : float ):
         return parse_address_from_latlon(result)
     except Exception as e:
         log.critical(f"FUCK : {e}")
+
+def get_KMA_location_code( lat:float , lon : float):
+    pass
+
+def get_KMA_location_code( lat:float , lon : float):
+    pass
 
 def logging_KMA_api_response_error(error:APIResponseError):
     '''
@@ -121,7 +129,9 @@ def get_corrent_date_hour_vil() -> tuple[str,str]:
 def get_corrent_date_hour_mid() -> str:
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 6) % 12 + 24) % 24
-    if 
+    if dt.hour < 6:
+        hour = hour % 24
+        dt = dt - timedelta(days=1)
     base_time = dt.replace(day=dt.day + (-1 if dt.hour < 6 else 0), hour = hour, minute=0)
     return base_time.strftime("%Y%m%d%H%M") 
 
@@ -145,8 +155,6 @@ async def recive_weather_info( params : Dict, url:str, timeout: int = 100):
         APIResponseError: If API response data is not vaild value
         Exception: If an unknown error occurs
     """
-    print(params)
-    log.warning(params)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             result = await client.get("http://apis.data.go.kr/1360000/"+url,params=params, timeout=10)
@@ -407,7 +415,6 @@ async def get_weather_vil( lat : float , lon : float , date : str , time : str ,
     xgrid, ygrid = get_data.combert_latlon_to_grid(lat,lon)
     hour = int(time[0:2])
     page , more_page, line, front_pad, back_pad = get_data.get_efficient_params_vil(hour, delt_day)
-    log.info(f"INFO: weather input: date:{date}, time:{time}")
     try: 
         if more_page == 0: 
             result = await fetch_weather_vil( xgrid, ygrid, date, time, number_of_rows=line,page_number=page)
@@ -520,7 +527,9 @@ def main():
     print(pop)
 
 def test():
-    print(get_corrent_date_hour_vil())
+    l1, l2 = get_address_from_latlon(37.564214, 127.001699)
+    print(l1)
+    print(l2)
 
 if __name__ == "__main__":
     log.basicConfig(filename="example.log", filemode="w",level=log.INFO)
