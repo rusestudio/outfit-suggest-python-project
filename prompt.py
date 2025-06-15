@@ -52,3 +52,7 @@ def image_prompt(result):
         imageprompts.append(throwback)
     
      return imageprompts[:3]
+
+
+if __name__ == "__main__":
+     image_prompt()

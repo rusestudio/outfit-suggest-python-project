@@ -121,11 +121,10 @@ async def submit_form( submit: SubmitRequest, request: Request):
         #weather_datad["temperature"] = avg
 
         user = get_user_by_login_id(userData.login_id)
-        
+
         # Build prompt with user data, weather data, and clothes data
         suggestions = main(user, weather_data, clothes_data, user_input)
 
-        
         return templates.TemplateResponse("result.html", {
             "request": request,
             "suggestions": suggestions,
