@@ -23,13 +23,17 @@ class APIResponseError(Exception):
         self.code = code
         self.message = message
 
-def fetch_address_from_latlon( lat : float , lon : float , type : str = "PARCEL"):
+async def fetch_address_from_latlon( lat : float , lon : float , type : str = "PARCEL", timeout : int = 10):
     '''
     get address from latitude and longitude
     ***This function use Vworld API.***
     Params:
         lat (float): Latitude
-        l
+        lon (float): Longitude
+        type (str): address system
+    
+    Returns:
+        json
     '''
     apiurl = "https://api.vworld.kr/req/address?"	
     params = {	
@@ -42,12 +46,27 @@ def fetch_address_from_latlon( lat : float , lon : float , type : str = "PARCEL"
         "type": "PARCEL",	
         "key": VWORLD_KEY	
     }	
-    response = requests.get(apiurl, params=params)	
-    if response.status_code != 200:
-        print("wow")
-    return response.json()
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.get(apiurl, params=params)	
+        if response.status_code != 200:
+            raise httpx.HTTPError
+        return response.json()
 
 def get_gangwon_WE(city: str) -> str:
+    '''
+    If city is in the 강원도 영서, it return 영서
+    If city is in the 강원도 영동, it return 영동
+
+    Params:
+        city (str): city that in 강원특별자치도
+
+    Return:
+        str: 영서 or 영동
+    
+    Raises:
+        ValueError:
+            If city is not in the 강원특별자치도
+    '''
     yeongseo = {
         '춘천시', '원주시', '홍천군', '횡성군', '평창군',
         '영월군', '정선군', '철원군', '화천군', '양구군', '인제군'
@@ -55,7 +74,6 @@ def get_gangwon_WE(city: str) -> str:
     yeongdong = {
         '강릉시', '동해시', '속초시', '삼척시', '고성군', '양양군'
     }
-
     if city in yeongseo:
         return '영서'
     elif city in yeongdong:
@@ -64,6 +82,20 @@ def get_gangwon_WE(city: str) -> str:
         raise ValueError
 
 def parse_address_from_latlon(response:json):
+    '''
+    Parsing datas that get from VWorld API
+
+    Params:
+        response: data that get from VWorld
+
+    Returns:
+        Dictionary:
+            Parsed data 
+    
+    Rasies:
+        APIResponseError:
+            So many reason of this Error
+    '''
     result = response["response"]
     status = result["status"]
     if status != "OK": 
@@ -78,15 +110,15 @@ def parse_address_from_latlon(response:json):
     level2 = structure["level2"]
     return level1 , level2
 
-def get_address_from_latlon( lat: float , lon : float ):
+async def get_address_from_latlon( lat: float , lon : float ):
     try:
-        result = fetch_address_from_latlon(lat,lon)
+        result = await fetch_address_from_latlon(lat,lon)
         return parse_address_from_latlon(result)
     except Exception as e:
         log.critical(f"FUCK : {e}")
 
-def get_KMA_land_code(lat:float,lon:float):
-    level1, level2 = get_address_from_latlon(lat,lon)
+async def get_KMA_land_code(lat:float,lon:float):
+    level1, level2 = await get_address_from_latlon(lat,lon)
     if level1 == '강원특별자치도':
         level1 = get_gangwon_WE(level2)
     region_to_code_map = {
@@ -105,18 +137,17 @@ def get_KMA_land_code(lat:float,lon:float):
     for code, regions in region_to_code_map.items():
         if level1 in regions:
             return code
-    return None  # 일치하는 지역이 없는 경우
-    
+    return None     
 
 def logging_KMA_api_response_error(error:APIResponseError):
     '''
     function for APIResponseError logging
-
+    
     Params:
-        error(APIResponseError): error that will be handled
+        error (APIResponseError): error that will be handled
     
     Return:
-        errorcode(str): It can change to int
+        errorcode (str): It can change to int
     '''
     match error.code:
         case "01":
@@ -153,6 +184,14 @@ def logging_KMA_api_response_error(error:APIResponseError):
             log.error(f"UNKNOWN_ERROR: {error}")
 
 def get_corrent_date_hour_vil() -> tuple[str,str]:
+    '''
+    get date and time that FsctVil API data refresh on recent
+    (0210, 0510, 0810, 1110, 1410, 1710, 2010, 2310)
+
+    Returns:
+        str: date(YYYYmmdd)
+        str: time(HHMM)
+    '''
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 2) % 3 + 24) % 24
     log.warning(f"{hour} , {dt.hour}")
@@ -167,6 +206,13 @@ def get_corrent_date_hour_vil() -> tuple[str,str]:
     return date, time
 
 def get_corrent_date_hour_mid() -> str:
+    '''
+    get date and time that FsctVil API data refresh on recent
+    (0600, 1500)
+
+    Returns:
+        str: date and time(YYYYmmddHHMM)
+    '''
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 6) % 12 + 24) % 24
     if dt.hour < 6:
@@ -177,7 +223,7 @@ def get_corrent_date_hour_mid() -> str:
 
 async def recive_weather_info( params : Dict, url:str, timeout: int = 100):
     """
-    recive weather data
+    Recive weather data in url
 
     Args:
         params (Dict): parameters to send to the KMA API
@@ -185,10 +231,11 @@ async def recive_weather_info( params : Dict, url:str, timeout: int = 100):
         timeout (int): time out flag
     
     Returns: 
-        Json
+        Json:
+            Weather data
     
     Raises:
-        httpx.HTTPError: If API Response is not vaild value
+        httpx.HTTPError: If API response is not vaild value
         APIResponseError: If API response data is not vaild value
         Exception: If an unknown error occurs
     """
@@ -244,26 +291,25 @@ def parse_weather_mid_land_items( response, hour) :
             day_info['rnst'] = rn
             day_info['wf'] = wf
         result[day_key] = day_info
-
+    
     return result
 
 def parse_weather_mid_tmpr_items(response,hour):
     """
-    기상청 중기 기온 예보 응답에서 4~10일치 기온 정보를 파싱하여 반환합니다.
+    Get temperature in dictionary
     
-    Parameters:
+    Params:
         response (dict): 기상청 중기 기온 API 응답 JSON
     
     Returns:
         dict: {
             "4": {"taMin": int, "taMax": int},
-            ...
             "10": {"taMin": int, "taMax": int}
         }
     """
+
     items = response['response']['body']['items']['item'][0]
     result = {}
-
     for day in range(4, 11) if hour != "18" else range(5,11):
         day_key = f"{day}"
         ta_min = items.get(f'taMin{day}')
@@ -272,10 +318,19 @@ def parse_weather_mid_tmpr_items(response,hour):
             'taMin': ta_min,
             'taMax': ta_max
         }
-
     return result
 
-def parse_weather_vil_items(response, t_date):
+def parse_weather_vil_items(response, t_date : str):
+    '''
+    parsing that weather items getting from Fcstvil
+    
+    Params:
+        response (dict): weather data
+        t_date (str): time that you want to know weather on
+
+    Return:
+        Dictionary
+    '''
     items = response['response']['body']['items']['item']
     result = {}
     for item in items:
@@ -283,87 +338,65 @@ def parse_weather_vil_items(response, t_date):
         if date != t_date:
             log.info(f"Skipping item with date {date}, expected {t_date}")
             continue  # 원하는 날짜와 다르면 건너뜀
-
         time = item['fcstTime']
         category = item['category']
         val = item['fcstValue']
-
         if date not in result:
             result[date] = {}
         if time not in result[date]:
             result[date][time] = {}
-
         result[date][time][category] = val
     return result
 
-def get_weather_TMX_TMN(result: dict,date:str,time:str):
+def get_weather_data_items(result: dict,item : str ,date:str,time:str):
+    '''
+    get average probavility of percipitation
+
+    Params:
+        result (dict): waether data that got from KMA Fcst vilage api
+        item (str): name of item you want to get
+        date (str): date that you want to know weather on
+        time (str): time that you want to get weather from to 23
+
+    Return:
+        float : average of item
+        float : maximum of item
+        float : minimum of item
+    '''
+
     hour = (int(time[:2]) + 1)%24
-    tmp_max = -999
-    tmp_min = 999
-    tmp_avg = 0
+    maximum = -999
+    minimum = 999
+    average = 0
     count = 0
     try:
         for time in range(hour,23):
             count += 1
-            tmp = int(result[date][f"{time:02d}00"]["TMP"])
-            tmp_avg += tmp
-            tmp_max = max(tmp,tmp_max)
-            tmp_min = min(tmp,tmp_min)
-        tmp_avg /= count
-        tmp_avg = round(tmp_avg,2)
+            data = int(result[date][f"{time:02d}00"][item])
+            average += data
+            maximum = max(data,maximum)
+            minimum = min(data,minimum)
+        average /= count
+        average = round(average,2)
     except Exception as e:
         log.error(f"error: {e}")
         raise
+    return average, maximum, minimum
 
-    return tmp_avg, tmp_min, tmp_max
+def get_weather_vil_average(result,target_date,target_time):
+    '''
+    get average of tmp, wsd, reh, pop
 
-def get_weather_WSD(result: dict,date:str,time:str):
-    hour = (int(time[:2]) + 1)%24
-    wsd_avg = 0.0
-    count = 0
-    try:
-        for time in range(hour,23):
-            count += 1
-            wsd = float(result[date][f"{time:02d}00"]["WSD"])
-            wsd_avg += wsd
-        wsd_avg /= count
-        wsd_avg = round(wsd_avg,2)
-    except Exception as e:
-        log.error(f"error: {e}")
-        raise
-    return wsd_avg
-
-def get_weather_POP(result: dict,date:str,time:str):
-    hour = (int(time[:2]) + 1)%24
-    pop_avg = 0.0
-    count = 0
-    try:
-        for time in range(hour,23):
-            count += 1
-            pop = float(result[date][f"{time:02d}00"]["POP"])
-            pop_avg += pop
-        pop_avg /= count
-        pop_avg = round(pop_avg,2)
-    except Exception as e:
-        log.error(f"error: {e}")
-        raise
-    return pop_avg
-
-def get_weather_REH(result: dict,date:str,time:str):
-    hour = (int(time[:2]) + 1)%24
-    reh_avg = 0.0
-    count = 0
-    try:
-        for time in range(hour,23):
-            count += 1
-            reh = float(result[date][f"{time:02d}00"]["REH"])
-            reh_avg += reh
-        reh_avg /= count
-        reh_avg = round(reh_avg,2)
-    except Exception as e:
-        log.error(f"error: {e}")
-        raise
-    return reh_avg
+    Params:
+        result : parsed Fsct vilage datas
+        target_date : date that you want to get
+        target_time : time that you want to get
+    '''
+    tm_av, _,_ = get_weather_data_items(result, "TMP", target_date, target_time)
+    ws_av, _,_ = get_weather_data_items(result, "WSD", target_date, target_time)
+    rh_av, _,_ = get_weather_data_items(result, "REH", target_date, target_time) 
+    pp_av, _,_ = get_weather_data_items(result, "POP", target_date, target_time)
+    return tm_av, ws_av, rh_av, pp_av
 
 async def fetch_weather_mid( regid : str, date : str
                        , number_of_rows : int = 10, page_number : int = 1 
@@ -532,6 +565,7 @@ async def get_weather_mid( lat : float , lon : float , day : int = 0 ) -> Dict:
         raise
     except RecursionError as e:
         raise   
+
 async def get_weather( lat : float , lon : float , delt_day : int = 0):
     '''
     get weather
@@ -540,11 +574,9 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
     if delt_day <= 4 :
         date, time = get_corrent_date_hour_vil()
         target_date = str(int(date)+delt_day)
-        target_time = "0000"
-        if target_date == date:
-            target_time = time
+        target_time = ("0000" if (target_date == date) else time)
             
-        log.warning(f"{date}{time},{target_date}{target_time}")
+        log.info(f"{date}{time},{target_date}{target_time}")
         try:
             response = await get_weather_vil(lat, lon, date, time, delt_day)
             result = parse_weather_vil_items(response,target_date) 
@@ -573,58 +605,6 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
             raise
         except Exception as e:
             raise
-        return [mid_tmpr, mid_land]
+        return 
     else:
         raise ValueError
-
-def get_weather_vil_average(result:dict, date: str,time:str)-> dict[str,]:
-    tmp_avg, _, _ = get_weather_TMX_TMN(result,date,time)
-    wsd_avg = get_weather_WSD(result,date,time)
-    pop_avg = get_weather_POP(result,date,time)
-    reh_avg = get_weather_REH(result,date,time)
-    weather_data = {
-        "temperature": str(tmp_avg),  # Celsius
-        "wind": str(wsd_avg),  # or value in km/h
-        "rain": str(pop_avg), #%
-        "humidity": str(reh_avg),
-    }
-    return weather_data 
-
-def main():
-    lat, lon= 37.564214, 127.001699
-    print(f"lat : {lat}")
-    print(f"lon : {lon}")
-    print(f"================================")
-
-    xpos, ypos = get_data.combert_latlon_to_grid(lat, lon)
-    date, time = get_corrent_date_hour_vil()
-
-    print(f"xpos : {xpos}")
-    print(f"ypos : {ypos}")
-
-    print(f"================================")
-
-    delt_day = 1
-    result = asyncio.run(get_weather(lat,lon,delt_day))
-    date = str(int(date)+delt_day)
-    
-    with open("result.json", "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-    avg, _,_ = get_weather_TMX_TMN(result, date, time)
-    wsd_avg= get_weather_WSD(result, date, time)
-    pop = get_weather_POP(result, date, time)
-    print(date,time)
-    print(pop)
-
-def test():
-    l1, l2 = 37.867776, 127.738793
-    result = asyncio.run(get_weather(l1,l2,0))
-    print(result)
-    result = asyncio.run(get_weather(l1,l2,5))
-    print(result[0])
-    print(result[1])
-
-import csv
-
-if __name__ == "__main__":
-    test()
