@@ -219,10 +219,10 @@
 
         <div id="alert" class="alert"></div>
 
-        <form id="loginForm"  method="POST" action="/login">
+        <form id="loginForm" method="POST" action="/login" >
             <div class="form-group">
-                <label for="userId">User ID</label>
-                <input type="text" id="userId" name="userId" required>
+                <label for="login_id">User ID</label>
+                <input type="text" id="login_id" name="login_id" required>
             </div>
 
             <div class="form-group">
@@ -231,10 +231,6 @@
             </div>
 
             <button type="submit" class="login-btn">Log In</button>
-
-            <div class="forgot-password">
-                <a href="#" onclick="alert('Contact admin for password reset')">Forgot password?</a>
-            </div>
         </form>
 
         <div class="signup-link">
@@ -259,7 +255,7 @@
                 // Collect form data
                 const formData = new FormData(form);
                 const data = {
-                    user_id: formData.get('userId'),
+                    login_id: formData.get('login_id'),
                     password: formData.get('password'),
                 };
 
@@ -282,7 +278,7 @@
                         window.location.href = '/index'; // 로그인 성공 후 이동할 페이지
                     }, 1500);
                 } else {
-                    throw new Error(result.detail || 'Invalid credentials');
+                    throw new Error(result.detail || 'Invalid credentials545');
                 }
             } catch (error) {
                 console.error('Login error:', error);
