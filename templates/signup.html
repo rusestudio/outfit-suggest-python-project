@@ -233,8 +233,8 @@
             <!-- Personal Information -->
             <div class="form-row">
                 <div class="form-group">
-                    <label for="sex">Sex *</label>
-                    <select id="sex" name="sex" required>
+                    <label for="gender">Sex *</label>
+                    <select id="gender" name="gender" required>
                         <option value="">Select Sex</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
@@ -287,7 +287,7 @@
                 const data = {
                     login_id: formData.get('userId'),
                     password: formData.get('password'),
-                    gender: formData.get('sex'),
+                    gender: formData.get('gender'),
                     age: parseInt(formData.get('age')),
                     height: parseFloat(formData.get('height')),
                     weight: parseFloat(formData.get('weight')),

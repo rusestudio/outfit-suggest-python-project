@@ -72,6 +72,7 @@ def main(user, weather_data, clothes_data, user_input):
     prompt = build_prompt(user, weather_data, clothes_data, user_input)
     # call gemini
     result = get_result(prompt)
+    #print(result)
     #save explanation
     explanations = save_explaination(result)
     # prompt_text

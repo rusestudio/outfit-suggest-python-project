@@ -5,10 +5,10 @@ from database import userData
 def build_prompt(userData,weather_data, clothes_data, user_input):
         #you are age, sex, height, body weight. //to be change based on user login data
         prompt = f"""
-        your are a {userData.gender} who is
-        {userData.age} years old,
-        height  {userData.height} cm,
-        weight {userData.weight} kg
+        your are a {userData['gender']} who is
+        {userData['age']} years old,
+        height  {userData['height']} cm,
+        weight {userData['weight']} kg
 
         
         Current weather conditions:

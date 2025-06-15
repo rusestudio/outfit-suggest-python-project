@@ -77,7 +77,7 @@ def get_user_by_login_id(login_id: str):
         statement = select(userData).where(userData.login_id == login_id)
         user = session.exec(statement).first()
         if user:
-            return json.dumps(user.model_dump(), ensure_ascii=False)
+            return user.model_dump()
         return json.dumps({}, ensure_ascii=False)
 
     

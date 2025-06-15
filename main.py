@@ -95,6 +95,7 @@ class SubmitRequest(BaseModel):
     submit_data: SubmitData
     location: Location
 
+
 # Combined endpoint that handles form submission and gets weather data
 @app.post("/submit")
 async def submit_form( submit: SubmitRequest, request: Request):
@@ -129,7 +130,8 @@ async def submit_form( submit: SubmitRequest, request: Request):
             "request": request,
             "suggestions": suggestions,
             "weather_data": weather_data,  # Optional: pass weather data to template
-            "user_input": user_input       # Optional: pass user input to template
+            "user_input": user_input,       # Optional: pass user input to template
+            "user":user
         })
         
     except Exception as e:
