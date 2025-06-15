@@ -1,13 +1,5 @@
 import json
 
-# weather data, dummy test data
-#weather_data = {
-    #"temperature": 19,  # Celsius
-   # "wind": "5",  # or value in km/h
-   # "rain": "no rain", #%
-    #"humidity": 71,
-#}
-
 # clothes data
 # Load clothes data from files
 with open("clothes_data/all_clothing_types.json", "r") as f1:

@@ -133,24 +133,6 @@ async def submit_form( submit: SubmitRequest, request: Request):
     except Exception as e:
         log.error(f"err: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
-
-
-#create db tables
-#@app.get("/result", response_class=HTMLResponse)
-#def read_result(request: Request, session: Session = Depends(lambda: Session(engine))):
- #   SQLModel.metadata.create_all(engine)
-    
-    #show explaina1,2,3
-    #show img1,2,3
-  #  with session:
-   #     results = session.exec(select(resultImage)).all()
-   #     explain_result = session.exec(select(explain_data.explain)).all()
-
-        # Convert images to base64
-   #     for result in results:
-   #       result.image = f"data:image/png;base64,{result.image}"
-    #      explain_result = f"{result.explain_result}"
-
    
 @app.get("/result", response_class=HTMLResponse)
 async def show_result(request: Request):
