@@ -1,14 +1,15 @@
-import requests
-import httpx
 import asyncio
-import pandas
-
+import json
 import logging as log
 from datetime import datetime, timedelta
 from typing import Dict
-import json
+
+import httpx
+import pandas
+import requests
 
 from config import SERVICE_KEY, VWORLD_KEY
+
 if __name__ == "__main__":
     import get_data
 else:
@@ -111,6 +112,20 @@ def parse_address_from_latlon(response:json):
     return level1 , level2
 
 async def get_address_from_latlon( lat: float , lon : float ):
+    '''
+    get address 
+
+    Params:
+        lat (float): Latitude
+        lon (float): Longitude
+    Return:
+        str:
+            level1(도, 특별자치시, 특별자치도, 광역시)
+            level2(시, 군, 구)
+    Exception:
+        APIResponseError:
+            when response code is 2xx, response datas are not good
+    '''
     try:
         result = await fetch_address_from_latlon(lat,lon)
         return parse_address_from_latlon(result)
@@ -118,13 +133,16 @@ async def get_address_from_latlon( lat: float , lon : float ):
         raise
 
 async def get_KMA_land_code(lat:float,lon:float):
+    '''
+    get land code for getting 4-10 days land data
+    '''
     level1, level2 = await get_address_from_latlon(lat,lon)
     if level1 == '강원특별자치도':
         level1 = get_gangwon_WE(level2)
     region_to_code_map = {
         "11B00000": ["서울특별시", "인천광역시", "경기도"],
-        "11D10000": ["영서"],
-        "11D20000": ["영동"],
+        "11D10000": ["영서"], # 강원도
+        "11D20000": ["영동"], # 강원도
         "11C20000": ["대전광역시", "세종특별자치시", "충청남도"],
         "11C10000": ["충청북도"],
         "11F20000": ["광주광역시", "전라남도"],
@@ -268,6 +286,13 @@ async def recive_weather_info( params : Dict, url:str, timeout: int = 100):
     return result
 
 def parse_weather_mid_land_items( response, hour) :
+    '''
+    parse weather data that is got from Mid_land
+
+    Params:
+        response (dict): data
+        hour (str): time of KMA API data is refreshed
+    '''
     items = response['response']['body']['items']['item'][0]
     result = {}
     
@@ -298,7 +323,7 @@ def parse_weather_mid_tmpr_items(response,hour):
     Get temperature in dictionary
     
     Params:
-        response (dict): 기상청 중기 기온 API 응답 JSON
+        response (dict): KMA data
     
     Returns:
         dict: {
@@ -382,6 +407,16 @@ def get_weather_data_items(result: dict,item : str ,date:str,time:str):
     return average, maximum, minimum
 
 def get_mid_temp_average(data):
+    '''
+    get data average from KMA mid-temperature data
+
+    Params:
+        data (dict): data 
+    
+    Returns:
+        float:
+            average of data
+    '''
     tmp = 0
     tmp += data.get("taMin")
     tmp += data.get("taMax")
@@ -389,6 +424,21 @@ def get_mid_temp_average(data):
     return tmp
 
 def get_mid_weather_average(tm_data,we_data,delt_time):
+    '''
+    get data average from KMA mid-land and mid-temp data
+
+    Params:
+        tm_data (dict): temperature data 
+        we_data (dict): land data  
+        delt_time (int): target time
+    
+    Returns:
+        dictionary:
+            temperature: str(float)
+            wind : Null
+            rain: str(float)
+            huminity : Null
+    '''
     tmp_avg = get_mid_temp_average(tm_data)
     rin_avg = 0
     if delt_time < 8 :
@@ -414,6 +464,12 @@ def get_weather_vil_average(result,target_date,target_time):
         result : parsed Fsct vilage datas
         target_date : date that you want to get
         target_time : time that you want to get
+    
+    Returns:
+        temperature: str(float),  # Celsius
+        wind: str(float) 
+        rain: str(float) 
+        humidity: str(float)
     '''
     tm_av, _,_ = get_weather_data_items(result, "TMP", target_date, target_time)
     ws_av, _,_ = get_weather_data_items(result, "WSD", target_date, target_time)
@@ -598,8 +654,31 @@ async def get_weather_mid( lat : float , lon : float , day : int = 0 ) -> Dict:
 async def get_weather( lat : float , lon : float , delt_day : int = 0):
     '''
     get weather
-    '''
+
+    Params:
+        lat (float): latitude
+        lon (float): longitude
+        delt_day (int): day that you want to get weather on from today
     
+    Returns:
+        dictionary:
+            temperature: str(float)
+            wind: str(float) | None
+            rain: str(float) | None
+            humidity: str(float)
+
+    Raise
+        httpx.ReadTimeout:
+            when Too Much times
+        httpx.TimeoutException:
+            when time over
+        APIResponseError:
+            when response ok but data is not ok
+        RecursionError:
+            when Too Much Functions
+        ValueError:
+            when input data is wrong
+    '''
     if delt_day <= 3 :
         date, time = get_corrent_date_hour_vil()
         target_date = str(int(date)+delt_day)
@@ -618,6 +697,10 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
             raise
         except RecursionError as e:
             raise   
+        except ValueError as e:
+            raise
+        except Exception as e:
+            raise
         return data
     elif delt_day <= 10:
         date = get_corrent_date_hour_mid()
@@ -629,7 +712,13 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
             mid_tmpr = mid_tmpr.get(str(delt_day))
             mid_land = mid_land.get(str(delt_day))
             data = get_mid_weather_average(mid_tmpr, mid_land,delt_day)
+        except httpx.ReadTimeout as e:
+            raise
+        except httpx.TimeoutException as e:
+            raise
         except APIResponseError as e:
+            raise
+        except RecursionError as e:
             raise
         except ValueError as e:
             raise
@@ -638,11 +727,3 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
         return data
     else:
         raise ValueError
-    
-if __name__ == "__main__":
-    lat, lon = 37.88131, 127.7299
-    for i in range(11):
-        try:
-            print(asyncio.run(get_weather(lat,lon,i)))
-        except Exception as e:
-            print("Boom: Null!")

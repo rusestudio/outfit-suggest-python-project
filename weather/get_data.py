@@ -1,14 +1,13 @@
-from typing import Tuple
-import pandas as pd
-from math import pi, tan, log, cos, pow, ceil
-import numpy as np
-from numba import njit
-from scipy.spatial import cKDTree
-from pydantic import BaseModel
-from typing import List, Tuple
 import json
 import logging as logg
+from math import ceil, cos, log, pi, pow, tan
+from typing import List, Tuple
 
+import numpy as np
+import pandas as pd
+from numba import njit
+from pydantic import BaseModel
+from scipy.spatial import cKDTree
 
 logg.info("Setting start...")
 # Variable for converting from lat,lon to grid
@@ -98,6 +97,25 @@ def combert_latlon_to_grid( lat, lon ) -> Tuple[int,int]:
 
 @njit
 def get_efficient_params_vil(hour, day):
+    '''
+    get Fcstvilage parameter for efficive request 
+
+    Params:
+        hour (int): current hour
+        day (int): current day
+    
+    Returns:
+        int:
+            page number
+        int:
+            Are there Padding?
+        int: 
+            line number
+        int:
+            front un-neccesery line number
+        int
+            back un-neccesery line number
+    '''
     today_data_num = (24 - (hour + 1) % 24) * 12
     full_index = today_data_num + 290 * day
     if hour < 6:
@@ -116,6 +134,21 @@ def get_efficient_params_vil(hour, day):
 
 @njit
 def get_3Dcoordinate(lat:float,lon:float):
+    '''
+    calculate position from latitude, longitude
+
+    Params:
+        lat (float): latitude
+        lon (float): longitude
+    
+    Return:
+        float:
+            x pos
+        float:
+            y pos
+        float:
+            z pos
+    '''
     lat_r = np.radians(lat)
     lon_r = np.radians(lon)
     qx = RAD * np.cos(lat_r) * np.cos(lon_r)
@@ -124,6 +157,17 @@ def get_3Dcoordinate(lat:float,lon:float):
     return qx, qy, qz
 
 def get_nearest_Fcstcodes(lat:float, lon:float)->str:
+    '''
+    get nearest KMA center code
+
+    Params:
+        lat (float): latitude
+        lon (float): longitude
+    
+    Return:
+        str:
+            KMA center code
+    '''
     qx, qy, qz = get_3Dcoordinate(lat,lon)
     _, idx = tree.query([qx, qy, qz], k=1)
     return codes[idx]
