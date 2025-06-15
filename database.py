@@ -84,8 +84,8 @@ def get_password_by_login_id(id: str):
         statement = select(userData).where(userData.login_id == id)
         user = session.exec(statement).first()
         if user:
-            return user.password
-        return None
+            return json.dumps({"password": user.password}, ensure_ascii=False)
+        return json.dumps({"password": None}, ensure_ascii=False)
     
 # data DB에서 특정 사용자 데이터를 업데이트하는 함수 | # Function to update specific user data in the data DB
 def update_user(user_info: userData):

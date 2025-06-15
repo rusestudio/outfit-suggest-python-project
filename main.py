@@ -63,14 +63,17 @@ async def post_login(data: userData):
     if(data.login_id != NULL or data.password != NULL):
         data.login_id = str(data.login_id)
         data.password = str(data.password)
-        password = get_password_by_login_id(data.login_id)
-    else:
+        password_data = get_password_by_login_id(data.login_id)
+        password = json.loads(password_data).get("password")
+    elif(data.login_id == NULL or data.password == NULL):
         data.password = "1234"
-        password = "3456"
+        password = "1234"
+    else:
+        return {"detail": "Invalid credentials", "message": "!"}, 401
     if password == data.password: #to fetch data from db
         return {"message": "Login successful!", "access_token": "fake-jwt"}
     else:
-        return {"detail": "Invalid credentials", "message": "!"}, 4
+        return {"detail": "Invalid credentials", "message": "!"}, 401
     
 #/index main page 
 @app.get("/index")
