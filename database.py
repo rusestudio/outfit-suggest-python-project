@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 from sqlmodel import Field, SQLModel, create_engine, Session, select
-from fastapi import FastAPI
+from fastapi import FastAPI, logger
 from fastapi import APIRouter
 
 # DB에 저장할 데이터 모델 정의 | # Define the data model to be stored in the DB
@@ -60,7 +60,7 @@ def export_all_users_to_json():
     with Session(data) as session:
         statement = select(userData)
         results = session.exec(statement).all()
-        users_list = [user.dict() for user in results]
+        users_list = [user.model_dump() for user in results]
         return json.dumps(users_list, ensure_ascii=False, indent=2)
     
 # data DB에 사용자 데이터를 추가하는 함수 | # Function to add user data to the data DB
@@ -78,15 +78,15 @@ def get_user_by_login_id(login_id: str):
         user = session.exec(statement).first()
         if user:
             return user.model_dump()
-        return json.dumps({}, ensure_ascii=False)
+        return {}
 
-    
+# data DB에서 특정 사용자의 비밀번호를 조회하는 함수 | # Function to retrieve the password of a specific user from the data DB
 def get_password_by_login_id(id: str):
     with Session(data) as session:
         statement = select(userData).where(userData.login_id == id)
         user = session.exec(statement).first()
         if user:
-            return json.dumps({"password": user.password}, ensure_ascii=False)
+            return json.dumps({"password": user.password}, ensure_ascii=False) # Return password in JSON format
         return json.dumps({"password": None}, ensure_ascii=False)
     
 # data DB에서 특정 사용자 데이터를 업데이트하는 함수 | # Function to update specific user data in the data DB
@@ -200,8 +200,9 @@ try:
     score.connect()
     clothes.connect()
     favorite.connect()
+    logger.info("All DB connections established successfully.")
 except Exception as e:
-    print(f"DB connection error: {e}")
+    logger.critical(f"DB connection error: {e}")
     exit(1)
 
     favorite = create_engine(
@@ -250,10 +251,87 @@ def get_decoded_image_with_info(tag: str):
         }, ensure_ascii=False)
     return json.dumps({}, ensure_ascii=False)
 
-# TODO
+# DB에서 사용자 통계 정보를 계산하는 함수 | # Function to calculate user statistics from the DB
+def get_user_statistics():
+    with Session(data) as session:
+        statement = select(userData)
+        users = session.exec(statement).all()
+        if users:
+            avg_age = sum(user.age for user in users) / len(users)
+            avg_height = sum(user.height for user in users) / len(users)
+            avg_weight = sum(user.weight for user in users) / len(users)
+            return json.dumps({
+                "average_age": avg_age,
+                "average_height": avg_height,
+                "average_weight": avg_weight
+            }, ensure_ascii=False)
+        return json.dumps({}, ensure_ascii=False)
 
-# DB 옷 데이터 결과물용 DB필요 (이미지, 글 2종 또는 이미지 변환 후 1종 보관) -완-
-# DB와 api 로컬에서 연결 실험 후 원격 연결시도 -성공-
-# DB 정렬 함수 추가 -완-
-# DB 평균값 계산 추가 -미완-
-# 나머지는 화요일 회의 후 추가적인 의견수렴
+# FastAPI를 사용하여 사용자 요약 보고서를 생성하는 함수 | # Function to generate a user summary report using FastAPI
+def generate_user_summary_report():
+    with Session(data) as session:
+        total_users = session.exec(select(userData)).all()
+        avg_stats = get_user_statistics()
+        return json.dumps({
+            "total_users": len(total_users),
+            "avg_stats": json.loads(avg_stats)
+        }, ensure_ascii=False, indent=2)
+    
+# FastAPI 애플리케이션 생성 | # Create FastAPI application
+app = FastAPI()
+
+# FastAPI 라우터 생성 | # Create FastAPI router
+router = APIRouter()
+
+# FastAPI 라우터에 사용자 요약 보고서 엔드포인트 추가 | # Add user summary report endpoint to FastAPI router
+@router.get("/user_summary_report")
+async def user_summary_report():
+    report = generate_user_summary_report()
+    return json.loads(report)
+
+# FastAPI 애플리케이션에 라우터 추가 | # Add router to FastAPI application
+app.include_router(router, prefix="/api", tags=["user_summary"])
+
+# 사용자 나이 분포를 계산하는 함수 | # Function to calculate user age distribution
+def get_user_age_distribution():
+    from collections import Counter
+    with Session(data) as session:
+        users = session.exec(select(userData)).all()
+        age_groups = [f"{(u.age // 10) * 10}s" for u in users]
+        return dict(Counter(age_groups))
+
+def update_user_password(login_id: str, new_password: str):
+    try:
+        with Session(data) as session:
+            user = session.exec(select(userData).where(userData.login_id == login_id)).first()
+            if user:
+                user.password = new_password
+                session.add(user)
+                session.commit()
+                session.refresh(user)
+                logger.info(f"Password updated for user: {login_id}")
+                return True
+            logger.warning(f"User not found for password update: {login_id}")
+            return False
+    except Exception as e:
+        logger.error(f"Error updating password for {login_id}: {e}")
+        return False
+
+# 특정 사용자의 모든 관련 데이터를 삭제하는 함수 | # Function to delete all related data of a specific user
+def delete_user_and_related_data(login_id: str):
+    with Session(data) as d_session, Session(score) as s_session, Session(favorite) as f_session:
+        user = d_session.exec(select(userData).where(userData.login_id == login_id)).first()
+        user_score = s_session.exec(select(userScore).where(userScore.login_id == login_id)).first()
+        user_favorite = f_session.exec(select(userFavorite).where(userFavorite.login_id == login_id)).first()
+        
+        if user:
+            d_session.delete(user)
+            d_session.commit()
+        if user_score:
+            s_session.delete(user_score)
+            s_session.commit()
+        if user_favorite:
+            f_session.delete(user_favorite)
+            f_session.commit()
+        
+        return True
