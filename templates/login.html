@@ -219,7 +219,7 @@
 
         <div id="alert" class="alert"></div>
 
-        <form id="loginForm" method="POST" action="/login">
+        <form id="loginForm"  method="POST" action="/login">
             <div class="form-group">
                 <label for="userId">User ID</label>
                 <input type="text" id="userId" name="userId" required>
@@ -230,7 +230,11 @@
                 <input type="password" id="password" name="password" required>
             </div>
 
-            <button type="submit" class="login-btn">Log In</button>
+            <button type="submit" class="login-btn">Sign In</button>
+
+            <div class="forgot-password">
+                <a href="#" onclick="alert('Contact admin for password reset')">Forgot password?</a>
+            </div>
         </form>
 
         <div class="signup-link">
@@ -239,17 +243,18 @@
     </div>
 
     <script>
+
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
+            
             const form = e.target;
             const alertDiv = document.getElementById('alert');
             const submitBtn = form.querySelector('.login-btn');
-
+            
             // Show loading state
             submitBtn.textContent = 'Signing In...';
             form.classList.add('loading');
-
+            
             try {
                 // Collect form data
                 const formData = new FormData(form);
@@ -264,46 +269,49 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                    user_id: data.user_id,
-                    password: data.password
-                }),
-             });
+                    body: JSON.stringify(data)
+                });
 
-                 const text = await response.text(); // Read once
-                    let result;
-                      try {
-                            result = JSON.parse(text); // Try parsing as JSON
-                        } catch {
-                            throw new Error(`Server error: ${text}`); // If not JSON, just use plain text
-                        }
+                const result = await response.json();
 
-
-                    if (response.ok) {
-                        if (result.access_token) {
+                if (response.ok) {
+                    // Success - store token if provided
+                    if (result.access_token) {
+                        if (data.remember_me) {
+                            localStorage.setItem('access_token', result.access_token);
+                        } else {
                             sessionStorage.setItem('access_token', result.access_token);
                         }
-
-                        showAlert('Login successful! Redirecting...', 'success');
-                        setTimeout(() => {
-                            window.location.href = '/index';
-                        }, 1500);
-
-                    } else {
-                        throw new Error(result.detail || 'Invalid credentials');
                     }
-
-                } catch (error) {
-                    console.error('Login error:', error);
-                    showAlert(error.message || 'An error occurred during login', 'error');
+                    
+                    showAlert('Login successful! Redirecting...', 'success');
+                    
+                    // Redirect to dashboard or main page after successful login
+                    setTimeout(() => {
+                        window.location.href = '/index'; // Change this to your main page
+                    }, 1500);
+                    
+                } else {
+                    // Error from server
+                    throw new Error(result.detail || 'Invalid credentials');
                 }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert(error.message || 'An error occurred during login', 'error');
+            } finally {
+                // Reset loading state
+                submitBtn.textContent = 'Sign In';
+                form.classList.remove('loading');
+            }
+        });
 
         function showAlert(message, type) {
             const alertDiv = document.getElementById('alert');
             alertDiv.textContent = message;
             alertDiv.className = `alert alert-${type}`;
             alertDiv.style.display = 'block';
-
+            
             // Auto hide after 5 seconds
             setTimeout(() => {
                 alertDiv.style.display = 'none';
@@ -326,7 +334,30 @@
                 }
             });
         });
-    })
+
+        // Check if user is already logged in
+        //window.addEventListener('load', function() {
+            //const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            //if (token) {
+                // Verify token with server
+               // fetch(`${API_BASE_URL}/verify-token`, {
+                   // method: 'GET',
+                   // headers: {
+                    //    'Authorization': `Bearer ${token}`
+                   // }
+               // })
+               // .then(response => {
+                  //  if (response.ok) {
+                 //       window.location.href = 'dashboard.html';
+                 //   }
+               // })
+              //  .catch(error => {
+                    // Token invalid, remove it
+                 //   localStorage.removeItem('access_token');
+                //    sessionStorage.removeItem('access_token');
+              //  });
+          //  }
+      //  });
     </script>
 </body>
 </html>

@@ -6,17 +6,16 @@ import uuid
 import google.generativeai as genai
 import requests
 
-from data_to_be_prompt import clothes_data
+from data_to_be_prompt import weather_data, clothes_data
 from prompt import build_prompt, image_prompt
 from database import userData
-from img_gen import generate_images
 
 # gemini text api define
 genai.configure(api_key="AIzaSyC8YOsoIj5YuWex1muFSwXCGwcDOaAUUAY")
 
 # api define picture
-#api_key = "sk-WSt7i36C7Hwxvk9TXiHI7Msz49fc3VXzgMHVlEJAWLLGaRmp"
-#api_url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
+api_key = "sk-JMYyFEVPfYvhzmfZmh3i5YRB7oEAM2DUYl7oTXfLANbGltQ1"
+api_url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
 
 
 # send prompt to gemini
@@ -26,85 +25,45 @@ def get_result(prompt: str):
     return response.text
 
 #save explaination
-import re
-
-import re
-
 def save_explaination(result):
-    blocks = result.strip().split("**Image Prompt:**")
+       parts = result.strip().split("**Image Prompt:**")[:3]
+       return [part.strip() for part in parts]
 
-    explanations = []
-    for block in blocks[:3]:
-        block = block.strip()
+def generate_images(image_prompts: list):
+    images = []
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Accept": "application/json",
+    }
 
-        # Step 1: Find the start of the outfit explanation
-        start_index = block.find("Outfit")
-        if start_index == -1:
-            explanations.append("No outfit explanation found.")
-            continue
+    for prompt_text in image_prompts:
+        files = {
+            "prompt": (None, prompt_text),
+            "output_format": (None, "png"),
+        }
+        response = requests.post(api_url, files=files, headers=headers)
+        if response.status_code == 200:
+            image_base64 = response.json()["image"]
+            images.append(f"data:image/png;base64,{image_base64}")
+        else:
+            images.append("image not available")  # Placeholder for failed image
 
-        # Step 2: Cut off before "Image Generation Prompt:"
-        end_index = block.find("Image Generation Prompt:")
-        if end_index == -1:
-            end_index = len(block)
-
-        explanation = block[start_index:end_index].strip()
-
-        # Step 3: Remove all * characters
-        explanation = explanation.replace("*", "")
-
-        # Step 4: Add \n before key headers
-        explanation = re.sub(r'(Materials, Types, and Colors:)', r'\n\1', explanation)
-        explanation = re.sub(r'(Why it fits:)', r'\n\1', explanation)
-
-        # Step 5: Remove double spaces and strip
-        explanation = re.sub(r'\s+', ' ', explanation).strip()
-
-        # Optional: Fix newline formatting for visual clarity
-        explanation = explanation.replace('\n ', '\n')  # fix space after newline
-
-        explanations.append(explanation)
-
-    while len(explanations) < 3:
-        explanations.append("No outfit suggestion available.")
-
-    return explanations
+    return images
 
 
-
-
-#def generate_images(image_prompts: list):
- #   images = []
- #   headers = {
- ##       "Authorization": f"Bearer {api_key}",
-  #      "Accept": "application/json",
-  #  }
-
-  #  for prompt_text in image_prompts:
-   #     files = {
-  #          "prompt": (None, prompt_text),
-  #          "output_format": (None, "png"),
-  #      }
-  #      response = requests.post(api_url, files=files, headers=headers)
-  #      if response.status_code == 200:
-  #          image_base64 = response.json()["image"]
-  #          images.append(f"data:image/png;base64,{image_base64}")
-  #      else:
-  #          images.append("image not available")  # Placeholder for failed image
-
-  #  return images
-
-
-def main(user, weather_data, clothes_data, user_input):
+def main():
     # call def build prompt
-    prompt = build_prompt(user, weather_data, clothes_data, user_input)
+    prompt = build_prompt(userData,weather_data, clothes_data, user_input)
+
     # call gemini
     result = get_result(prompt)
-    #save explanation
+
+    #save explaination
     explanations = save_explaination(result)
 
-    # prompt_text img
+    # prompt_text
     imageprompts = image_prompt(result)
+
     image_base64_list = generate_images(imageprompts)
 
     suggestions = []
@@ -119,6 +78,6 @@ def main(user, weather_data, clothes_data, user_input):
 
 # Only run this if the file is executed directly
 if __name__ == "__main__":
-    suggest = main(user, weather_data, clothes_data, user_input)
+    suggest = main()
     for s in suggest:
         print(json.dumps(s, indent=2))
