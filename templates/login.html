@@ -230,7 +230,7 @@
                 <input type="password" id="password" name="password" required>
             </div>
 
-            <button type="submit" class="login-btn">Sign In</button>
+            <button type="submit" class="login-btn">Log In</button>
 
             <div class="forgot-password">
                 <a href="#" onclick="alert('Contact admin for password reset')">Forgot password?</a>
@@ -274,9 +274,9 @@
 
                 const result = await response.json();
 
-                if (response.ok) {
+                if (response.ok && result.access_token ) {
                     // Success - store token if provided
-                    if (result.access_token) {
+                  if (result.access_token) {
                         if (data.remember_me) {
                             localStorage.setItem('access_token', result.access_token);
                         } else {

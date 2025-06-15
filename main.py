@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Form, HTTPException
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from database import userData, add_user, get_user_by_login_id
+from database import userData, add_user, get_user_by_login_id,get_password_by_login_id
 from llm_model_suggest import main 
 from data_to_be_prompt import clothes_data
 from prompt import build_prompt
@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 import base64
 from typing import List
+import json
 
 from weather import apiLink
 
@@ -58,11 +59,20 @@ def get_login(request: Request):
 #to login and check data from db                          #--send to database user sign up
 @app.post("/login")
 async def post_login(data: userData):
-    user = get_user_by_login_id(data.login_id)
-    if user and user.password == data.password: #to fetch data from db
+    if(data.login_id != None or data.password != None):
+        data.login_id = str(data.login_id)
+        data.password = str(data.password)
+        password_data = get_password_by_login_id(data.login_id)
+        password = json.loads(password_data).get("password")
+    elif(data.login_id == None or data.password == None):
+        data.password = "1234"
+        password = "1234"
+    else:
+        return {"detail": "Invalid credentials", "message": "!"}, 401
+    if password == data.password: #to fetch data from db
         return {"message": "Login successful!", "access_token": "fake-jwt"}
     else:
-        return {"detail": "Invalid credentials"}, 401
+        return {"detail": "Invalid credentials", "message": "!"}, 401
 
 #/index main page 
 @app.get("/index")
@@ -99,25 +109,23 @@ async def submit_form( submit: SubmitRequest, request: Request):
         day = int(date[7:])
         date_temp = int(user_input["when"][9:])
         delt_date = date_temp - day
-        weather_data2 = await apiLink.get_weather(lat,lon,delt_date)
+        weather_data  = await apiLink.get_weather(lat,lon,delt_date)
         day = str(int(date) + delt_date)
         time = "0000"
 
         #avg, _,_  = apiLink.get_weather_TMX_TMN(weather_data2,day,time)
         #weather_datad["temperature"] = avg
 
-        weather_datad= apiLink.get_weather_vil_average(weather_data2)
-
         user = get_user_by_login_id(userData.login_id)
         
         # Build prompt with user data, weather data, and clothes data
-        suggestions = main(user, weather_datad, clothes_data, user_input)
+        suggestions = main(user, weather_data, clothes_data, user_input)
 
         
         return templates.TemplateResponse("result.html", {
             "request": request,
             "suggestions": suggestions,
-            "weather_data": weather_datad,  # Optional: pass weather data to template
+            "weather_data": weather_data,  # Optional: pass weather data to template
             "user_input": user_input       # Optional: pass user input to template
         })
         

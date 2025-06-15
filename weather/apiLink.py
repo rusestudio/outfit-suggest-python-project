@@ -383,6 +383,7 @@ def get_weather_data_items(result: dict,item : str ,date:str,time:str):
     return average, maximum, minimum
 
 def get_weather_vil_average(result,target_date,target_time):
+    
     '''
     get average of tmp, wsd, reh, pop
 
@@ -395,7 +396,14 @@ def get_weather_vil_average(result,target_date,target_time):
     ws_av, _,_ = get_weather_data_items(result, "WSD", target_date, target_time)
     rh_av, _,_ = get_weather_data_items(result, "REH", target_date, target_time) 
     pp_av, _,_ = get_weather_data_items(result, "POP", target_date, target_time)
-    return tm_av, ws_av, rh_av, pp_av
+
+    weather_data = {
+        "temperature": str(tm_av),  # Celsius
+        "wind": str(ws_av),  # or value in km/h
+        "rain": str(pp_av), #%
+        "humidity": str(rh_av),
+    }
+    return weather_data
 
 async def fetch_weather_mid( regid : str, date : str
                        , number_of_rows : int = 10, page_number : int = 1 
