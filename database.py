@@ -78,7 +78,6 @@ def get_user_by_login_id(login_id: str):
         user = session.exec(statement).first()
         return user
     
-<<<<<<< HEAD
 def get_password_by_login_id(id: str):
     with Session(data) as session:
         statement = select(userData).where(userData.login_id == id)
@@ -87,8 +86,6 @@ def get_password_by_login_id(id: str):
             return json.dumps({"password": user.password}, ensure_ascii=False)
         return json.dumps({"password": None}, ensure_ascii=False)
     
-=======
->>>>>>> b54404635b8b510f81b8b9d6b0e6daae25069be0
 # data DB에서 특정 사용자 데이터를 업데이트하는 함수 | # Function to update specific user data in the data DB
 def update_user(user_info: userData):
     with Session(data) as session:

@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Form, HTTPException
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from database import userData, add_user, get_user_by_login_id
+from database import userData, add_user, get_user_by_login_id, get_password_by_login_id
 from llm_model_suggest import main 
 from data_to_be_prompt import weather_data, clothes_data
 from prompt import build_prompt
@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 import base64
 from typing import List
+import json
 
 from .weather import apiLink
 
@@ -65,13 +66,12 @@ def get_login(request: Request):
 #to login and check data from db                          #--send to database user sign up
 @app.post("/login")
 async def post_login(data: userData):
-<<<<<<< HEAD
-    if(data.login_id != NULL or data.password != NULL):
+    if(data.login_id != None or data.password != None):
         data.login_id = str(data.login_id)
         data.password = str(data.password)
         password_data = get_password_by_login_id(data.login_id)
         password = json.loads(password_data).get("password")
-    elif(data.login_id == NULL or data.password == NULL):
+    elif(data.login_id == None or data.password == None):
         data.password = "1234"
         password = "1234"
     else:
@@ -81,14 +81,6 @@ async def post_login(data: userData):
     else:
         return {"detail": "Invalid credentials", "message": "!"}, 401
     
-=======
-    user = get_user_by_login_id(data.login_id)
-    if user and user.password == data.password: #to fetch data from db
-        return {"message": "Login successful!", "access_token": "fake-jwt"}
-    else:
-        return {"detail": "Invalid credentials"}, 401
-
->>>>>>> b54404635b8b510f81b8b9d6b0e6daae25069be0
 #/index main page 
 @app.get("/index")
 def get_login(request: Request):
@@ -133,23 +125,6 @@ async def submit_form(submit_data: SubmitRequest, request: Request, location: Lo
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
-
-
-#create db tables
-#@app.get("/result", response_class=HTMLResponse)
-#def read_result(request: Request, session: Session = Depends(lambda: Session(engine))):
- #   SQLModel.metadata.create_all(engine)
-    
-    #show explaina1,2,3
-    #show img1,2,3
-  #  with session:
-   #     results = session.exec(select(resultImage)).all()
-   #     explain_result = session.exec(select(explain_data.explain)).all()
-
-        # Convert images to base64
-   #     for result in results:
-   #       result.image = f"data:image/png;base64,{result.image}"
-    #      explain_result = f"{result.explain_result}"
 
    
 @app.get("/result", response_class=HTMLResponse)
