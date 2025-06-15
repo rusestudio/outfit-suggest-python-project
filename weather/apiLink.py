@@ -194,7 +194,6 @@ def get_corrent_date_hour_vil() -> tuple[str,str]:
     '''
     dt = datetime.now()
     hour = (dt.hour - (dt.hour - 2) % 3 + 24) % 24
-    log.warning(f"{hour} , {dt.hour}")
     if (hour == dt.hour and dt.minute < 10):
         hour -= 3
     if dt.hour < 2:
@@ -381,6 +380,30 @@ def get_weather_data_items(result: dict,item : str ,date:str,time:str):
         log.error(f"error: {e}")
         raise
     return average, maximum, minimum
+
+def get_mid_temp_average(data):
+    tmp = 0
+    tmp += data.get("taMin")
+    tmp += data.get("taMax")
+    tmp = tmp/2
+    return tmp
+
+def get_mid_weather_average(tm_data,we_data,delt_time):
+    tmp_avg = get_mid_temp_average(tm_data)
+    rin_avg = 0
+    if delt_time < 8 :
+        rin_avg += we_data.get("rnst").get("am")
+        rin_avg += we_data.get("rnst").get("pm")
+        rin_avg = float(rin_avg/2)
+    else:
+        rin_avg = we_data.get("rnst")
+    weather_data = {
+        "temperature": str(tmp_avg),
+        "wind" : "Null",
+        "rain": str(rin_avg),
+        "huminity" : "Null"
+    }
+    return weather_data 
 
 def get_weather_vil_average(result,target_date,target_time):
     
@@ -605,12 +628,21 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
             mid_land = parse_weather_mid_land_items(mid_response_land,hour)
             mid_tmpr = mid_tmpr.get(str(delt_day))
             mid_land = mid_land.get(str(delt_day))
+            data = get_mid_weather_average(mid_tmpr, mid_land,delt_day)
         except APIResponseError as e:
             raise
         except ValueError as e:
             raise
         except Exception as e:
             raise
-        return mid_tmpr, mid_land
+        return data
     else:
         raise ValueError
+    
+if __name__ == "__main__":
+    lat, lon = 37.88131, 127.7299
+    for i in range(11):
+        try:
+            print(asyncio.run(get_weather(lat,lon,i)))
+        except Exception as e:
+            print("Boom: Null!")
