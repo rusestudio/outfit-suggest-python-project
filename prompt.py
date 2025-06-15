@@ -5,18 +5,17 @@ from database import userData
 def build_prompt(userData,weather_data, clothes_data, user_input):
         #you are age, sex, height, body weight. //to be change based on user login data
         prompt = f"""
-        your are a {userData['gender']} who is
-        {userData['age']} years old,
-        height  {userData['height']} cm,
-        weight {userData['weight']} kg
+        your are a {userData.gender} who is
+        {userData.age} years old,
+        height  {userData.height} cm,
+        weight {userData.weight} kg
 
         
         Current weather conditions:
         - Temperature: {weather_data['temperature']}°C
-        - Wind: {weather_data['wind']}
-        - Rain: {weather_data['rain']}
+        - Wind: {weather_data['wind']} m/h
+        - Rain: {weather_data['rain']} % 
         - Humidity: {weather_data['humidity']}%
-        - Air Pressure: {weather_data['air_pressure']} hPa
 
         Available clothing options include the following types:
         {', '.join(clothes_data['types'])}
