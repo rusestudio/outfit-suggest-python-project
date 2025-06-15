@@ -307,7 +307,6 @@ def parse_weather_mid_tmpr_items(response,hour):
             "10": {"taMin": int, "taMax": int}
         }
     """
-
     items = response['response']['body']['items']['item'][0]
     result = {}
     for day in range(4, 11) if hour != "18" else range(5,11):
@@ -364,15 +363,15 @@ def get_weather_data_items(result: dict,item : str ,date:str,time:str):
         float : minimum of item
     '''
 
-    hour = (int(time[:2]) + 1)%24
-    maximum = -999
-    minimum = 999
-    average = 0
+    hour = (int(time[:2]) + 1 )%24
+    maximum = -999.0
+    minimum = 999.0
+    average = 0.0
     count = 0
     try:
         for time in range(hour,23):
             count += 1
-            data = int(result[date][f"{time:02d}00"][item])
+            data = float(result[date][f"{time:02d}00"][item])
             average += data
             maximum = max(data,maximum)
             minimum = min(data,minimum)
@@ -551,10 +550,9 @@ async def get_weather_mid( lat : float , lon : float , day : int = 0 ) -> Dict:
             key
     '''
     date = get_corrent_date_hour_mid()
-    log.info(date)
     tmpr_code = get_data.get_nearest_Fcstcodes(lat,lon) 
-    land_code = get_KMA_land_code(lat,lon)
     try: 
+        land_code = await get_KMA_land_code(lat,lon)
         r_land, r_tmpr = await asyncio.gather(fetch_weather_mid(land_code, date, api_type="getMidLandFcst")
                                               , fetch_weather_mid(tmpr_code, date, api_type="getMidTa"))
         return r_land, r_tmpr
@@ -571,10 +569,10 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
     get weather
     '''
     
-    if delt_day <= 4 :
+    if delt_day <= 3 :
         date, time = get_corrent_date_hour_vil()
         target_date = str(int(date)+delt_day)
-        target_time = ("0000" if (target_date == date) else time)
+        target_time = ("0000" if (target_date != date) else time)
             
         log.info(f"{date}{time},{target_date}{target_time}")
         try:
@@ -590,7 +588,7 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
         except RecursionError as e:
             raise   
         return data
-    elif delt_day <= 7:
+    elif delt_day <= 10:
         date = get_corrent_date_hour_mid()
         hour = date[8:10]
         try:
@@ -605,6 +603,6 @@ async def get_weather( lat : float , lon : float , delt_day : int = 0):
             raise
         except Exception as e:
             raise
-        return 
+        return mid_tmpr, mid_land
     else:
         raise ValueError
