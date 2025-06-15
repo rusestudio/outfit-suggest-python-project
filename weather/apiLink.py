@@ -115,7 +115,7 @@ async def get_address_from_latlon( lat: float , lon : float ):
         result = await fetch_address_from_latlon(lat,lon)
         return parse_address_from_latlon(result)
     except Exception as e:
-        log.critical(f"FUCK : {e}")
+        raise
 
 async def get_KMA_land_code(lat:float,lon:float):
     level1, level2 = await get_address_from_latlon(lat,lon)
