@@ -1,11 +1,10 @@
-from asyncio.windows_events import NULL
 from fastapi import FastAPI, Request, Form, HTTPException
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from database import userData, add_user, get_user_by_login_id, get_password_by_login_id
+from database import userData, add_user, get_user_by_login_id
 from llm_model_suggest import main 
-from data_to_be_prompt import clothes_data
+from data_to_be_prompt import weather_data, clothes_data
 from prompt import build_prompt
 import os
 import logging as log
@@ -13,9 +12,8 @@ from fastapi.staticfiles import StaticFiles
 
 import base64
 from typing import List
-import json
-from weather import apiLink
 
+from .weather import apiLink
 
 def setup_log():
     log.basicConfig(
@@ -26,17 +24,24 @@ def setup_log():
             log.StreamHandler()
         ]
     )
-setup_log()
+
+
+app = FastAPI()
+
+# Set up templates directory
+templates = Jinja2Templates(directory="templates")
 
 #weather
 logger = log.getLogger(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
-app = FastAPI()
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
-# Set up templates directory
-templates = Jinja2Templates(directory="templates")
+class SubmitRequest(BaseModel):
+    when: str
+    destination: str
+
 
 @app.get("/")
 def get_page(request: Request):
@@ -60,81 +65,56 @@ def get_login(request: Request):
 #to login and check data from db                          #--send to database user sign up
 @app.post("/login")
 async def post_login(data: userData):
-    if(data.login_id != NULL or data.password != NULL):
-        data.login_id = str(data.login_id)
-        data.password = str(data.password)
-        password = get_password_by_login_id(data.login_id)
-    else:
-        data.password = "1234"
-        password = "3456"
-    if password == data.password: #to fetch data from db
+    user = get_user_by_login_id(data.login_id)
+    if user and user.password == data.password: #to fetch data from db
         return {"message": "Login successful!", "access_token": "fake-jwt"}
     else:
-        return {"detail": "Invalid credentials", "message": "!"}, 4
-    
+        return {"detail": "Invalid credentials"}, 401
+
 #/index main page 
 @app.get("/index")
 def get_login(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-class SubmitData(BaseModel):
-    when: str
-    destination: str
-    environment: str
 
+logger = log.getLogger(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+
+# 클라이언트에서 받을 위치 정보 모델
 class Location(BaseModel):
     latitude: float
     longitude: float
 
-class SubmitRequest(BaseModel):
-    submit_data: SubmitData
-    location: Location
-
 # Combined endpoint that handles form submission and gets weather data
 @app.post("/submit")
-async def submit_form( submit: SubmitRequest, request: Request):
+async def submit_form(submit_data: SubmitRequest, request: Request, location: Location):
     user_input = {
-        "when": submit.submit_data.when,
-        "destination": submit.submit_data.destination,
+        "when": submit_data.when,
+        "destination": submit_data.destination,
     }
     
     try:
         # Get weather data using location coordinates
-        lat = submit.location.latitude
-        lon = submit.location.longitude
+        lat = location.latitude
+        lon = location.longitude
         print(f"Getting weather for coordinates: {lat},{lon}")
         
 
-        date, time = apiLink.get_corrent_date_hour_vil()
-        day = int(date[7:])
-        date_temp = int(user_input["when"][9:])
-        delt_date = date_temp - day
-        weather_data2 = await apiLink.get_weather(lat,lon,delt_date)
-        day = str(int(date) + delt_date)
-        time = "0000"
-
-        #avg, _,_  = apiLink.get_weather_TMX_TMN(weather_data2,day,time)
-        #weather_datad["temperature"] = avg
-
-        weather_data= apiLink.get_weather_vil_average(weather_data2,day,time)
-        #print(weather_data)
-
-        user = get_user_by_login_id(userData.login_id)
-        
         # Build prompt with user data, weather data, and clothes data
-        suggestions = main(user, weather_data, clothes_data, user_input)
-
+        prompt = build_prompt(userData, weather_data, clothes_data, user_input)
         
         return templates.TemplateResponse("result.html", {
             "request": request,
-            "suggestions": suggestions,
+            "prompt": prompt,
             "weather_data": weather_data,  # Optional: pass weather data to template
             "user_input": user_input       # Optional: pass user input to template
         })
         
     except Exception as e:
-        log.error(f"err: {e}")
-        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
 
 #create db tables
