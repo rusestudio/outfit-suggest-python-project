@@ -76,7 +76,10 @@ def get_user_by_login_id(login_id: str):
     with Session(data) as session:
         statement = select(userData).where(userData.login_id == login_id)
         user = session.exec(statement).first()
-        return user
+        if user:
+            return json.dumps(user.model_dump(), ensure_ascii=False)
+        return json.dumps({}, ensure_ascii=False)
+
     
 def get_password_by_login_id(id: str):
     with Session(data) as session:
@@ -121,8 +124,8 @@ def get_average_score():
         if results:
             total_score = sum(user.score for user in results)
             average_score = total_score / len(results)
-            return average_score
-        return 0
+            return json.dumps({"average_score": average_score}, ensure_ascii=False)
+        return json.dumps({"average_score": 0}, ensure_ascii=False)
     
 # favorite DB에 사용자의 선호도를 추가하는 함수 | # Function to add user preference to the favorite DB
 def add_user_favorite(user_favorite: userFavorite):
@@ -235,15 +238,17 @@ def decode_image_from_base64(encoded_image: str) -> bytes:
 
 # 디코딩한 이미지와 다른 정보를 함께 반환하는 함수 | # Function to return the decoded image along with other information
 def get_decoded_image_with_info(tag: str):
+    import base64
     image_data = get_image_by_tag(tag)
     if image_data:
         decoded_image = decode_image_from_base64(image_data.image)
-        return {
-            "image": decoded_image,
+        reencoded_image = base64.b64encode(decoded_image).decode('utf-8')
+        return json.dumps({
+            "image": reencoded_image,
             "times": image_data.times,
             "tag": image_data.tag
-        }
-    return None
+        }, ensure_ascii=False)
+    return json.dumps({}, ensure_ascii=False)
 
 # TODO
 
