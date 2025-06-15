@@ -274,28 +274,16 @@
 
                 const result = await response.json();
 
-                if (response.ok && result.access_token ) {
-                    // Success - store token if provided
-                  if (result.access_token) {
-                        if (data.remember_me) {
-                            localStorage.setItem('access_token', result.access_token);
-                        } else {
-                            sessionStorage.setItem('access_token', result.access_token);
-                        }
-                    }
-                    
+                if (response.ok && result.access_token) {
+                    // 무조건 sessionStorage에 저장 (remember me 없음)
+                    sessionStorage.setItem('access_token', result.access_token);
                     showAlert('Login successful! Redirecting...', 'success');
-                    
-                    // Redirect to dashboard or main page after successful login
                     setTimeout(() => {
-                        window.location.href = '/index'; // Change this to your main page
+                        window.location.href = '/index'; // 로그인 성공 후 이동할 페이지
                     }, 1500);
-                    
                 } else {
-                    // Error from server
                     throw new Error(result.detail || 'Invalid credentials');
                 }
-
             } catch (error) {
                 console.error('Login error:', error);
                 showAlert(error.message || 'An error occurred during login', 'error');
