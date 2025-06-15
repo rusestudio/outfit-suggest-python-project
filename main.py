@@ -1,20 +1,22 @@
-from fastapi import FastAPI, Request, Form, HTTPException
-from pydantic import BaseModel
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
-from database import userData, add_user, get_user_by_login_id,get_password_by_login_id
-from llm_model_suggest import main 
-from data_to_be_prompt import clothes_data
-from prompt import build_prompt
-import os
-import logging as log
-from fastapi.staticfiles import StaticFiles
-
 import base64
-from typing import List
 import json
+import logging as log
+import os
+from typing import List
 
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+
+from data_to_be_prompt import clothes_data
+from database import (add_user, get_password_by_login_id, get_user_by_login_id,
+                      userData)
+from llm_model_suggest import main
+from prompt import build_prompt
 from weather import apiLink
+
 
 def setup_log():
     log.basicConfig(
