@@ -31,15 +31,37 @@ def save_explaination(result):
     blocks = result.strip().split("**Image Prompt:**")
 
     explanations = []
-    for block in blocks[:3]:  # Only first 3 outfits
-        cleaned = block.strip()
+    for block in blocks[:3]:
+        block = block.strip()
 
-        # Optional cleanup of markdown-style asterisks
-        cleaned = cleaned.replace("*", "").strip()
+        # Step 1: Find the start of the outfit explanation
+        start_index = block.find("Outfit")
+        if start_index == -1:
+            explanations.append("No outfit explanation found.")
+            continue
 
-        explanations.append(cleaned)
+        # Step 2: Cut off before "Image Generation Prompt:"
+        end_index = block.find("Image Generation Prompt:")
+        if end_index == -1:
+            end_index = len(block)
 
-    # Ensure we always return 3 entries
+        explanation = block[start_index:end_index].strip()
+
+        # Step 3: Remove all * characters
+        explanation = explanation.replace("*", "")
+
+        # Step 4: Add \n before key headers
+        explanation = re.sub(r'(Materials, Types, and Colors:)', r'\n\1', explanation)
+        explanation = re.sub(r'(Why it fits:)', r'\n\1', explanation)
+
+        # Step 5: Remove double spaces and strip
+        explanation = re.sub(r'\s+', ' ', explanation).strip()
+
+        # Optional: Fix newline formatting for visual clarity
+        explanation = explanation.replace('\n ', '\n')  # fix space after newline
+
+        explanations.append(explanation)
+
     while len(explanations) < 3:
         explanations.append("No outfit suggestion available.")
 
