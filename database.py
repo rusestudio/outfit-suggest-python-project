@@ -1,8 +1,19 @@
 # -*- coding: utf-8 -*-
 import json
 from sqlmodel import Field, SQLModel, create_engine, Session, select
-from fastapi import FastAPI, logger
+from fastapi import FastAPI
 from fastapi import APIRouter
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Optional: only add handler if none exist (avoids duplicate logs)
+if not logger.hasHandlers():
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 # DB에 저장할 데이터 모델 정의 | # Define the data model to be stored in the DB
 class userData(SQLModel, table=True):
