@@ -12,7 +12,7 @@ from database import userData
 from img_gen import generate_images
 
 # gemini text api define
-genai.configure(api_key="AIzaSyC8YOsoIj5YuWex1muFSwXCGwcDOaAUUAY")
+genai.configure(api_key="")
 
 # api define picture
 #api_key = "sk-JMYyFEVPfYvhzmfZmh3i5YRB7oEAM2DUYl7oTXfLANbGltQ1"
