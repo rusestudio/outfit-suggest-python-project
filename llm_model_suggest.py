@@ -2,6 +2,7 @@ import base64
 import json
 import re
 import uuid
+import os
 
 import google.generativeai as genai
 import requests
@@ -12,7 +13,7 @@ from database import userData
 from img_gen import generate_images
 
 # gemini text api define
-genai.configure(api_key="")
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # api define picture
 api_key = "api_key"
