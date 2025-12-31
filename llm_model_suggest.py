@@ -15,8 +15,8 @@ from img_gen import generate_images
 genai.configure(api_key="")
 
 # api define picture
-#api_key = "sk-JMYyFEVPfYvhzmfZmh3i5YRB7oEAM2DUYl7oTXfLANbGltQ1"
-#api_url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
+api_key = "api_key"
+api_url = "api_url"
 
 
 # send prompt to gemini
